@@ -13,8 +13,11 @@ import {
 import { DataProcessorIcon } from "@patternfly/react-icons";
 import type React from "react";
 import { useMemo, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { dashboardStyles } from "./dashboardStyles";
 import MigrationDonutChart from "./MigrationDonutChart";
+import { parseMemoryTier } from "./vmFilters";
+import { createVMFilterURL } from "./vmNavigation";
 
 interface CpuAndMemoryOverviewProps {
   cpuTierDistribution?: Record<string, number>;
@@ -44,6 +47,7 @@ export const CpuAndMemoryOverview: React.FC<CpuAndMemoryOverviewProps> = ({
   cpuTotalCores,
   isExportMode = false,
 }) => {
+  const navigate = useNavigate();
   const [viewMode, setViewMode] = useState<ViewMode>("memoryTiers");
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
 
@@ -92,6 +96,15 @@ export const CpuAndMemoryOverview: React.FC<CpuAndMemoryOverviewProps> = ({
   const totalVMs = useMemo(() => {
     return activeSlices.reduce((sum, s) => sum + s.count, 0);
   }, [activeSlices]);
+
+  const handleItemClick = (item: { name: string; legendCategory: string }) => {
+    if (viewMode === "memoryTiers") {
+      // Parse memory tier and create filter
+      const filters = parseMemoryTier(item.legendCategory);
+      navigate(createVMFilterURL(filters));
+    }
+    // CPU tiers don't have backend filters yet, so we don't handle them
+  };
 
   return (
     <Card
@@ -176,9 +189,13 @@ export const CpuAndMemoryOverview: React.FC<CpuAndMemoryOverviewProps> = ({
           subTitleColor="#9a9da0"
           itemsPerRow={Math.ceil(activeSlices.length / 2)}
           labelFontSize={18}
-          marginLeft="52%"
           tooltipLabelFormatter={({ datum, percent }) =>
             `${datum.countDisplay}\n${percent.toFixed(1)}%`
+          }
+          onItemClick={
+            !isExportMode && viewMode === "memoryTiers"
+              ? handleItemClick
+              : undefined
           }
         />
       </CardBody>

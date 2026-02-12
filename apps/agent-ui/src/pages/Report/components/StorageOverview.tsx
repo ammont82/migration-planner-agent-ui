@@ -8,8 +8,11 @@ import {
 import { DatabaseIcon } from "@patternfly/react-icons";
 import type React from "react";
 import { useMemo } from "react";
+import { useNavigate } from "react-router-dom";
 import { dashboardStyles } from "./dashboardStyles";
 import MigrationDonutChart from "./MigrationDonutChart";
+import { parseDiskTier } from "./vmFilters";
+import { createVMFilterURL } from "./vmNavigation";
 
 interface DiskTierData {
   vmCount?: number;
@@ -33,6 +36,8 @@ export const StorageOverview: React.FC<StorageOverviewProps> = ({
   diskSizeTier = {},
   isExportMode = false,
 }) => {
+  const navigate = useNavigate();
+
   const { chartData, totalSize, totalVMs } = useMemo(() => {
     const getTierPrefix = (key: string): string | null => {
       for (const prefix of Object.keys(TIER_CONFIG)) {
@@ -78,6 +83,11 @@ export const StorageOverview: React.FC<StorageOverviewProps> = ({
     return legendMap;
   }, [chartData]);
 
+  const handleDiskClick = (item: { name: string }) => {
+    const filters = parseDiskTier(item.name);
+    navigate(createVMFilterURL(filters));
+  };
+
   return (
     <Card
       className={
@@ -108,10 +118,10 @@ export const StorageOverview: React.FC<StorageOverviewProps> = ({
           subTitleColor="#9a9da0"
           itemsPerRow={Math.ceil(chartData.length / 2)}
           labelFontSize={18}
-          marginLeft="52%"
           tooltipLabelFormatter={({ datum, percent }) =>
             `${datum.countDisplay}\n${percent.toFixed(1)}%`
           }
+          onItemClick={!isExportMode ? handleDiskClick : undefined}
         />
       </CardBody>
     </Card>

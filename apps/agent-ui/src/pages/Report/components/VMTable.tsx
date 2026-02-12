@@ -34,11 +34,14 @@ import {
   Tr,
 } from "@patternfly/react-table";
 import type React from "react";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { useSearchParams } from "react-router-dom";
+import { filtersToSearchParams, type VMFilters } from "./vmFilters";
 
 interface VMTableProps {
   vms: VM[];
   loading: boolean;
+  initialFilters?: VMFilters;
   // onVMClick?: (vm: VM) => void;
 }
 
@@ -100,27 +103,28 @@ interface AppliedFilter {
 export const VMTable: React.FC<VMTableProps> = ({
   vms,
   loading,
+  initialFilters,
   // onVMClick,
 }) => {
+  const [, setSearchParams] = useSearchParams();
+
   // Pagination state
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(20);
 
   // Search state (client-side only)
-  const [searchValue, setSearchValue] = useState("");
+  const [searchValue, setSearchValue] = useState(initialFilters?.search || "");
 
   // Filter dropdown state
   const [isFilterOpen, setIsFilterOpen] = useState(false);
 
-  // Local filter state
-  const [selectedDiskRange, setSelectedDiskRange] = useState<number | null>(
-    null,
+  // Client-side filter state (for status and issues only - no backend support yet)
+  const [selectedStatuses, setSelectedStatuses] = useState<string[]>(
+    initialFilters?.statuses || [],
   );
-  const [selectedMemoryRange, setSelectedMemoryRange] = useState<number | null>(
-    null,
+  const [hasIssuesFilter, setHasIssuesFilter] = useState(
+    initialFilters?.hasIssues || false,
   );
-  const [selectedStatuses, setSelectedStatuses] = useState<string[]>([]);
-  const [hasIssuesFilter, setHasIssuesFilter] = useState(false);
 
   // Selection state
   // const [selectedVMs, setSelectedVMs] = useState<Set<string>>(new Set());
@@ -143,26 +147,147 @@ export const VMTable: React.FC<VMTableProps> = ({
     { key: "issues", label: "Issues", sortable: true },
   ];
 
+  // Update URL when client filters change
+  // NOTE: This effect is disabled when there are backend filters present (from chart navigation)
+  // Backend filters should only be modified by external navigation, not by this component
+  useEffect(() => {
+    // Check CURRENT URL for backend filters (not just initial mount)
+    const currentParams = new URLSearchParams(window.location.search);
+    const hasBackendFilters = !!(
+      currentParams.get("minIssues") ||
+      currentParams.get("diskSizeMin") ||
+      currentParams.get("diskSizeMax") ||
+      currentParams.get("memorySizeMin") ||
+      currentParams.get("memorySizeMax")
+    );
+
+    // Don't update URL if there are backend filters (from chart clicks)
+    // Backend filters should remain unchanged until user navigates away
+    if (hasBackendFilters) {
+      return;
+    }
+
+    // Only update URL if we're actually on the VMs tab
+    // Check current URL to avoid overwriting when user switches to Overview tab
+    const currentTab = currentParams.get("tab");
+
+    // Don't update if we're explicitly on a different tab (like "overview")
+    if (currentTab && currentTab !== "vms") {
+      return;
+    }
+
+    // If no tab param, only update if there are some client filters set
+    // (to avoid setting tab=vms unnecessarily on initial load)
+    if (!currentTab) {
+      const hasAnyClientFilter = !!(
+        selectedStatuses.length > 0 ||
+        hasIssuesFilter ||
+        searchValue
+      );
+      if (!hasAnyClientFilter) {
+        return;
+      }
+    }
+    const currentFilters: VMFilters = {
+      statuses: selectedStatuses.length > 0 ? selectedStatuses : undefined,
+      hasIssues: hasIssuesFilter || undefined,
+      search: searchValue || undefined,
+    };
+
+    const newParams = filtersToSearchParams(currentFilters);
+    newParams.set("tab", "vms");
+
+    setSearchParams(newParams, { replace: true });
+  }, [selectedStatuses, hasIssuesFilter, searchValue, setSearchParams]);
+
   // Build list of applied filters for chip display
   const appliedFilters = useMemo(() => {
     const filters: AppliedFilter[] = [];
 
-    if (selectedDiskRange !== null) {
+    // Backend filters (from chart navigation or dropdown selection)
+    if (
+      initialFilters?.memorySizeMin !== undefined ||
+      initialFilters?.memorySizeMax !== undefined
+    ) {
+      const memorySizeMin = initialFilters.memorySizeMin;
+      const memorySizeMax = initialFilters.memorySizeMax;
+
+      // Find matching range in memorySizeRanges to get the proper label
+      const matchingRange = memorySizeRanges.find(
+        (range) => range.min === memorySizeMin && range.max === memorySizeMax,
+      );
+
+      let label = "";
+      if (matchingRange) {
+        label = matchingRange.label;
+      } else if (memorySizeMin !== undefined && memorySizeMax !== undefined) {
+        // Fallback: calculate display values
+        const minGB = Math.floor(memorySizeMin / 1024);
+        const maxGB = Math.floor(memorySizeMax / 1024);
+        label = `${minGB}-${maxGB} GB`;
+      } else if (memorySizeMin !== undefined) {
+        const minGB = Math.floor(memorySizeMin / 1024);
+        label = `≥ ${minGB} GB`;
+      } else if (memorySizeMax !== undefined) {
+        const maxGB = Math.floor(memorySizeMax / 1024);
+        label = `≤ ${maxGB} GB`;
+      }
+
+      if (label) {
+        filters.push({
+          category: "Memory",
+          label,
+          key: "backendMemorySize",
+        });
+      }
+    }
+
+    if (
+      initialFilters?.diskSizeMin !== undefined ||
+      initialFilters?.diskSizeMax !== undefined
+    ) {
+      const diskSizeMin = initialFilters.diskSizeMin;
+      const diskSizeMax = initialFilters.diskSizeMax;
+
+      // Find matching range in diskSizeRanges to get the proper label
+      const matchingRange = diskSizeRanges.find(
+        (range) => range.min === diskSizeMin && range.max === diskSizeMax,
+      );
+
+      let label = "";
+      if (matchingRange) {
+        label = matchingRange.label;
+      } else if (diskSizeMin !== undefined && diskSizeMax !== undefined) {
+        // Fallback: calculate display values
+        const minTB = Math.floor(diskSizeMin / (1024 * 1024));
+        const maxTB = Math.floor(diskSizeMax / (1024 * 1024));
+        label = `${minTB}-${maxTB} TB`;
+      } else if (diskSizeMin !== undefined) {
+        const minTB = Math.floor(diskSizeMin / (1024 * 1024));
+        label = `≥ ${minTB} TB`;
+      } else if (diskSizeMax !== undefined) {
+        const maxTB = Math.floor(diskSizeMax / (1024 * 1024));
+        label = `≤ ${maxTB} TB`;
+      }
+
+      if (label) {
+        filters.push({
+          category: "Disk size",
+          label,
+          key: "backendDiskSize",
+        });
+      }
+    }
+
+    if (initialFilters?.minIssues !== undefined) {
       filters.push({
-        category: "Disk size",
-        label: diskSizeRanges[selectedDiskRange].label,
-        key: "diskSize",
+        category: "Issues",
+        label: `≥ ${initialFilters.minIssues}`,
+        key: "backendMinIssues",
       });
     }
 
-    if (selectedMemoryRange !== null) {
-      filters.push({
-        category: "Memory",
-        label: memorySizeRanges[selectedMemoryRange].label,
-        key: "memorySize",
-      });
-    }
-
+    // Client-side filters (status and issues only - no backend support yet)
     selectedStatuses.forEach((status) => {
       filters.push({
         category: "Status",
@@ -180,14 +305,9 @@ export const VMTable: React.FC<VMTableProps> = ({
     }
 
     return filters;
-  }, [
-    selectedDiskRange,
-    selectedMemoryRange,
-    selectedStatuses,
-    hasIssuesFilter,
-  ]);
+  }, [selectedStatuses, hasIssuesFilter, initialFilters]);
 
-  // Client-side filtering
+  // Client-side filtering (only for search, status, and issues - disk and memory use backend)
   const filteredVMs = useMemo(() => {
     return vms.filter((vm) => {
       // Search filter
@@ -196,36 +316,6 @@ export const VMTable: React.FC<VMTableProps> = ({
         !vm.name.toLowerCase().includes(searchValue.toLowerCase())
       ) {
         return false;
-      }
-
-      // Disk size filter
-      if (selectedDiskRange !== null) {
-        const range = diskSizeRanges[selectedDiskRange];
-        const diskSizeMB = vm.diskSize || 0;
-        if (
-          range.max !== undefined &&
-          (diskSizeMB < range.min || diskSizeMB > range.max)
-        ) {
-          return false;
-        }
-        if (range.max === undefined && diskSizeMB < range.min) {
-          return false;
-        }
-      }
-
-      // Memory filter
-      if (selectedMemoryRange !== null) {
-        const range = memorySizeRanges[selectedMemoryRange];
-        const memoryMB = vm.memory || 0;
-        if (
-          range.max !== undefined &&
-          (memoryMB < range.min || memoryMB > range.max)
-        ) {
-          return false;
-        }
-        if (range.max === undefined && memoryMB < range.min) {
-          return false;
-        }
       }
 
       // Status filter
@@ -243,14 +333,7 @@ export const VMTable: React.FC<VMTableProps> = ({
 
       return true;
     });
-  }, [
-    vms,
-    searchValue,
-    selectedDiskRange,
-    selectedMemoryRange,
-    selectedStatuses,
-    hasIssuesFilter,
-  ]);
+  }, [vms, searchValue, selectedStatuses, hasIssuesFilter]);
 
   // Client-side sorting
   const sortedVMs = useMemo(() => {
@@ -314,15 +397,97 @@ export const VMTable: React.FC<VMTableProps> = ({
     columnIndex,
   });
 
-  // Filter handlers
+  // Helper to check if a disk range is selected based on URL params
+  const isDiskRangeSelected = (index: number): boolean => {
+    if (!initialFilters) return false;
+    const range = diskSizeRanges[index];
+
+    // Check min
+    if (initialFilters.diskSizeMin !== range.min) return false;
+
+    // Check max - handle undefined case
+    if (range.max === undefined) {
+      return initialFilters.diskSizeMax === undefined;
+    }
+    return initialFilters.diskSizeMax === range.max;
+  };
+
+  // Helper to check if a memory range is selected based on URL params
+  const isMemoryRangeSelected = (index: number): boolean => {
+    if (!initialFilters) return false;
+    const range = memorySizeRanges[index];
+
+    // Check min
+    if (initialFilters.memorySizeMin !== range.min) return false;
+
+    // Check max - handle undefined case
+    if (range.max === undefined) {
+      return initialFilters.memorySizeMax === undefined;
+    }
+    return initialFilters.memorySizeMax === range.max;
+  };
+
+  // Filter handlers - now use backend filters
   const onDiskSizeSelect = (index: number) => {
-    setSelectedDiskRange(selectedDiskRange === index ? null : index);
-    setPage(1); // Reset to first page
+    const range = diskSizeRanges[index];
+    const currentParams = new URLSearchParams(window.location.search);
+
+    // Check if this filter is already selected
+    const currentMin = currentParams.get("diskSizeMin");
+    const currentMax = currentParams.get("diskSizeMax");
+    const isSelected =
+      currentMin === range.min.toString() &&
+      (range.max === undefined
+        ? currentMax === null
+        : currentMax === range.max?.toString());
+
+    if (isSelected) {
+      // Deselect - remove filter
+      currentParams.delete("diskSizeMin");
+      currentParams.delete("diskSizeMax");
+    } else {
+      // Select - add filter
+      currentParams.set("diskSizeMin", range.min.toString());
+      if (range.max !== undefined) {
+        currentParams.set("diskSizeMax", range.max.toString());
+      } else {
+        currentParams.delete("diskSizeMax");
+      }
+    }
+
+    setSearchParams(currentParams, { replace: true });
+    window.location.search = currentParams.toString();
   };
 
   const onMemorySizeSelect = (index: number) => {
-    setSelectedMemoryRange(selectedMemoryRange === index ? null : index);
-    setPage(1);
+    const range = memorySizeRanges[index];
+    const currentParams = new URLSearchParams(window.location.search);
+
+    // Check if this filter is already selected
+    const currentMin = currentParams.get("memorySizeMin");
+    const currentMax = currentParams.get("memorySizeMax");
+    const isSelected =
+      currentMin === range.min.toString() &&
+      (range.max === undefined
+        ? currentMax === null
+        : currentMax === range.max?.toString());
+
+    if (isSelected) {
+      // Deselect - remove filter
+      currentParams.delete("memorySizeMin");
+      currentParams.delete("memorySizeMax");
+    } else {
+      // Select - add filter
+      currentParams.set("memorySizeMin", range.min.toString());
+      if (range.max !== undefined) {
+        currentParams.set("memorySizeMax", range.max.toString());
+      } else {
+        currentParams.delete("memorySizeMax");
+      }
+    }
+
+    setSearchParams(currentParams, { replace: true });
+    window.location.search = currentParams.toString();
   };
 
   const onStatusSelect = (status: string) => {
@@ -340,11 +505,32 @@ export const VMTable: React.FC<VMTableProps> = ({
 
   // Remove individual filter
   const removeFilter = (filterKey: string) => {
-    if (filterKey === "diskSize") {
-      setSelectedDiskRange(null);
-    } else if (filterKey === "memorySize") {
-      setSelectedMemoryRange(null);
-    } else if (filterKey.startsWith("status-")) {
+    // Backend filters - need to update URL
+    if (filterKey === "backendMemorySize") {
+      const currentParams = new URLSearchParams(window.location.search);
+      currentParams.delete("memorySizeMin");
+      currentParams.delete("memorySizeMax");
+      setSearchParams(currentParams, { replace: true });
+      // Reload page to fetch unfiltered data
+      window.location.search = currentParams.toString();
+      return;
+    } else if (filterKey === "backendDiskSize") {
+      const currentParams = new URLSearchParams(window.location.search);
+      currentParams.delete("diskSizeMin");
+      currentParams.delete("diskSizeMax");
+      setSearchParams(currentParams, { replace: true });
+      window.location.search = currentParams.toString();
+      return;
+    } else if (filterKey === "backendMinIssues") {
+      const currentParams = new URLSearchParams(window.location.search);
+      currentParams.delete("minIssues");
+      setSearchParams(currentParams, { replace: true });
+      window.location.search = currentParams.toString();
+      return;
+    }
+
+    // Client-side filters (status and issues only)
+    if (filterKey.startsWith("status-")) {
       const status = filterKey.replace("status-", "");
       setSelectedStatuses(selectedStatuses.filter((s) => s !== status));
     } else if (filterKey === "hasIssues") {
@@ -355,8 +541,28 @@ export const VMTable: React.FC<VMTableProps> = ({
 
   // Clear all filters
   const clearAllFilters = () => {
-    setSelectedDiskRange(null);
-    setSelectedMemoryRange(null);
+    // Clear backend filters by removing all filter params from URL
+    const currentParams = new URLSearchParams(window.location.search);
+    currentParams.delete("memorySizeMin");
+    currentParams.delete("memorySizeMax");
+    currentParams.delete("diskSizeMin");
+    currentParams.delete("diskSizeMax");
+    currentParams.delete("minIssues");
+
+    // If we had backend filters, reload to fetch all VMs
+    if (
+      initialFilters?.memorySizeMin ||
+      initialFilters?.memorySizeMax ||
+      initialFilters?.diskSizeMin ||
+      initialFilters?.diskSizeMax ||
+      initialFilters?.minIssues
+    ) {
+      setSearchParams(currentParams, { replace: true });
+      window.location.search = currentParams.toString();
+      return;
+    }
+
+    // Clear client-side filters (status and issues only)
     setSelectedStatuses([]);
     setHasIssuesFilter(false);
     setPage(1);
@@ -462,7 +668,7 @@ export const VMTable: React.FC<VMTableProps> = ({
                       <DropdownItem
                         key={range.label}
                         onClick={() => onDiskSizeSelect(index)}
-                        isSelected={selectedDiskRange === index}
+                        isSelected={isDiskRangeSelected(index)}
                       >
                         {range.label}
                       </DropdownItem>
@@ -475,7 +681,7 @@ export const VMTable: React.FC<VMTableProps> = ({
                       <DropdownItem
                         key={range.label}
                         onClick={() => onMemorySizeSelect(index)}
-                        isSelected={selectedMemoryRange === index}
+                        isSelected={isMemoryRangeSelected(index)}
                       >
                         {range.label}
                       </DropdownItem>
