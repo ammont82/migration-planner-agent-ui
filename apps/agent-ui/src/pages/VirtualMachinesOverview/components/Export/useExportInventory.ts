@@ -4,21 +4,11 @@ import { downloadExportBlob, getExportFilename } from "./downloadExportBlob";
 import { fetchExportInventory } from "./exportInventoryApi";
 import type { ExportFormat, ExportScopeId } from "./exportScopes";
 
-type UseExportInventoryOptions = {
-  hasCollectionData: boolean;
-  hasInventory: boolean;
-};
-
-export function useExportInventory(
-  agentApi: DefaultApiInterface,
-  { hasCollectionData, hasInventory }: UseExportInventoryOptions,
-) {
+export function useExportInventory(agentApi: DefaultApiInterface) {
   const [isExportModalOpen, setIsExportModalOpen] = useState(false);
   const [exportError, setExportError] = useState<string | null>(null);
   const [isExporting, setIsExporting] = useState(false);
   const isExportingRef = useRef(false);
-
-  const showExport = hasCollectionData && hasInventory;
 
   const openExportModal = useCallback(() => {
     setExportError(null);
@@ -66,7 +56,6 @@ export function useExportInventory(
 
   return {
     isExportModalOpen,
-    showExport,
     exportError,
     isExporting,
     openExportModal,
