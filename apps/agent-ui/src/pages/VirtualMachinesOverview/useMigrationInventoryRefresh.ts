@@ -120,9 +120,9 @@ export function useMigrationInventoryRefresh({
     [bumpRevision, fetchInventory, setInventory, setVmsList],
   );
 
-  const reloadInventory = useCallback(async () => {
+  const reloadInventory = useCallback(async (): Promise<boolean> => {
     if (pendingMigrationUpdatesRef.current > 0) {
-      return;
+      return false;
     }
 
     try {
@@ -130,10 +130,13 @@ export function useMigrationInventoryRefresh({
       if (fetchedInventory) {
         setInventory(fetchedInventory);
         bumpRevision();
+        return true;
       }
     } catch (err) {
       console.error("Error reloading inventory:", err);
     }
+
+    return false;
   }, [bumpRevision, fetchInventory, setInventory]);
 
   return { revision, refreshInventory, reloadInventory };

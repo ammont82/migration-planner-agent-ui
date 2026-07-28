@@ -17,6 +17,7 @@ import {
 import { OutlinedQuestionCircleIcon } from "@patternfly/react-icons";
 import type React from "react";
 import { useMemo, useState } from "react";
+import { getCollectionProgressInfo } from "../common/collectionProgress";
 import type { ApiError } from "../common/components/index";
 import {
   CollectionProgress,
@@ -24,32 +25,6 @@ import {
   RedHatLogo,
 } from "../common/components/index";
 import { VCenterCredentialsForm } from "./VCenterCredentialsForm";
-
-const getProgressInfo = (
-  status: CollectorStatus["status"] | null,
-  error?: ApiError | null,
-): { percentage: number; statusText: string } => {
-  switch (status) {
-    case "connecting":
-      return { percentage: 20, statusText: "Connecting to vCenter..." };
-    case "collecting":
-    case "collecting metrics":
-      return { percentage: 60, statusText: "Collecting inventory data..." };
-    case "parsing":
-      return { percentage: 90, statusText: "Parsing..." };
-    case "collected":
-      return { percentage: 100, statusText: "Collection complete" };
-    case "error":
-      return {
-        percentage: 0,
-        statusText: error?.message
-          ? `Error: ${error.message}`
-          : "Collection failed",
-      };
-    default:
-      return { percentage: 0, statusText: "" };
-  }
-};
 
 interface MainVCenterCredentialsModalProps {
   isOpen: boolean;
@@ -77,7 +52,7 @@ export const MainVCenterCredentialsModal: React.FC<
   const [isDataShared, setIsDataShared] = useState(initialIsDataShared);
 
   const progressInfo = useMemo(
-    () => getProgressInfo(status, error),
+    () => getCollectionProgressInfo(status, error?.message),
     [status, error],
   );
 
