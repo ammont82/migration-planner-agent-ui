@@ -850,6 +850,7 @@ export const VirtualMachinesView: React.FC<VirtualMachinesViewProps> = ({
       <VMDetailsPage
         vmId={selectedVMId}
         onBack={handleBack}
+        inspectionActive={inspectionActive}
         scrollToSection={vmSectionParam}
         onScrollToSectionComplete={handleScrollToSectionComplete}
       />
