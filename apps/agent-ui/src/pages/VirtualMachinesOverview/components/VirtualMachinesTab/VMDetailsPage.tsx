@@ -4,7 +4,6 @@ import type {
   DefaultApiInterface,
   VirtualMachineDetail,
   VMIssue,
-  VmInspectionStatus,
   VmUtilizationDetails,
 } from "@openshift-migration-advisor/agent-sdk";
 import {
@@ -69,7 +68,6 @@ interface VirtualMachineDetailWithUtilization extends VirtualMachineDetail {
 interface VMDetailsPageProps {
   vmId: string;
   onBack: () => void;
-  inspectionStatus?: VmInspectionStatus;
   scrollToSection?: string | null;
   onScrollToSectionComplete?: () => void;
 }
@@ -77,7 +75,6 @@ interface VMDetailsPageProps {
 export const VMDetailsPage: React.FC<VMDetailsPageProps> = ({
   vmId,
   onBack,
-  inspectionStatus,
   scrollToSection,
   onScrollToSectionComplete,
 }) => {
@@ -131,6 +128,36 @@ export const VMDetailsPage: React.FC<VMDetailsPageProps> = ({
 
     fetchVMDetails();
   }, [vmId, agentApi]);
+
+  // Refresh detail while deep inspection is in progress so status/results stay current.
+  const inspectionState = vm?.inspectionStatus?.state;
+  useEffect(() => {
+    if (inspectionState !== "pending" && inspectionState !== "running") {
+      return;
+    }
+
+    let cancelled = false;
+    const POLL_INTERVAL_MS = 5000;
+
+    const pollVmDetails = async () => {
+      try {
+        const vmData = await agentApi.getVM({ id: vmId });
+        if (!cancelled) {
+          setVm((prev) =>
+            prev ? { ...vmData, utilization: prev.utilization } : vmData,
+          );
+        }
+      } catch (err) {
+        console.warn("Error refreshing VM inspection status:", err);
+      }
+    };
+
+    const intervalId = setInterval(pollVmDetails, POLL_INTERVAL_MS);
+    return () => {
+      cancelled = true;
+      clearInterval(intervalId);
+    };
+  }, [vmId, agentApi, inspectionState]);
 
   useEffect(() => {
     let cancelled = false;
@@ -255,6 +282,8 @@ export const VMDetailsPage: React.FC<VMDetailsPageProps> = ({
         return <Label>{vm.powerState}</Label>;
     }
   };
+
+  const inspectionStatus = vm.inspectionStatus;
 
   return (
     <Stack hasGutter>
