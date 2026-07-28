@@ -4,13 +4,11 @@ import type React from "react";
 
 interface ReportPageHeaderProps {
   discoveryStatus: string;
-  showExport?: boolean;
-  onExportClick?: () => void;
+  onExportClick: () => void;
 }
 
 export const ReportPageHeader: React.FC<ReportPageHeaderProps> = ({
   discoveryStatus,
-  showExport = false,
   onExportClick,
 }) => {
   return (
@@ -30,11 +28,9 @@ export const ReportPageHeader: React.FC<ReportPageHeaderProps> = ({
           Discovery VM status: {discoveryStatus}
         </Content>
       </div>
-      {showExport && onExportClick ? (
-        <Button variant="link" onClick={onExportClick} icon={<ExportIcon />}>
-          Export
-        </Button>
-      ) : null}
+      <Button variant="link" onClick={onExportClick} icon={<ExportIcon />}>
+        Export
+      </Button>
     </div>
   );
 };

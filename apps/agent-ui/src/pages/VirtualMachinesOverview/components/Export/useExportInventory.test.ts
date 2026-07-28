@@ -28,12 +28,7 @@ describe("useExportInventory", () => {
 
   it("downloads an Excel file when format is xlsx", async () => {
     const agentApi = {} as never;
-    const { result } = renderHook(() =>
-      useExportInventory(agentApi, {
-        hasCollectionData: true,
-        hasInventory: true,
-      }),
-    );
+    const { result } = renderHook(() => useExportInventory(agentApi));
 
     await act(async () => {
       await result.current.confirmExport(["overview", "hosts"], "xlsx");
@@ -54,12 +49,7 @@ describe("useExportInventory", () => {
 
   it("downloads a ZIP file when format is zip", async () => {
     const agentApi = {} as never;
-    const { result } = renderHook(() =>
-      useExportInventory(agentApi, {
-        hasCollectionData: true,
-        hasInventory: true,
-      }),
-    );
+    const { result } = renderHook(() => useExportInventory(agentApi));
 
     await act(async () => {
       await result.current.confirmExport(["overview"], "zip");
@@ -83,12 +73,7 @@ describe("useExportInventory", () => {
       .mockImplementation(() => undefined);
     fetchExportInventory.mockRejectedValue(new Error("export failed"));
     const agentApi = {} as never;
-    const { result } = renderHook(() =>
-      useExportInventory(agentApi, {
-        hasCollectionData: true,
-        hasInventory: true,
-      }),
-    );
+    const { result } = renderHook(() => useExportInventory(agentApi));
 
     act(() => {
       result.current.openExportModal();
