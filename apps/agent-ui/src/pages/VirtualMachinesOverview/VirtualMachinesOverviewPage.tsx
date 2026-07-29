@@ -35,7 +35,6 @@ import {
   DataSharingAlert,
   DataSharingModal,
 } from "../../common/components/index";
-import { formatDiscoveryStatus } from "../../common/formatDiscoveryStatus";
 import { Symbols } from "../../main/Symbols";
 
 import {
@@ -354,8 +353,6 @@ export const ReportContainer: React.FC = () => {
     }
   }, [agentApi, initialVMFilters, vmsSortFields, vmsPage, vmsPageSize]);
 
-  const discoveryStatus = formatDiscoveryStatus(agentStatus);
-
   const {
     isExportModalOpen,
     exportError,
@@ -371,7 +368,7 @@ export const ReportContainer: React.FC = () => {
         <Stack hasGutter>
           <StackItem>
             <ReportPageHeader
-              discoveryStatus={discoveryStatus}
+              agentStatus={agentStatus}
               onExportClick={openExportModal}
             />
           </StackItem>
@@ -399,7 +396,7 @@ export const ReportContainer: React.FC = () => {
         <Stack hasGutter>
           <StackItem>
             <ReportPageHeader
-              discoveryStatus={discoveryStatus}
+              agentStatus={agentStatus}
               onExportClick={openExportModal}
             />
           </StackItem>
@@ -429,7 +426,7 @@ export const ReportContainer: React.FC = () => {
         <Stack hasGutter>
           <StackItem>
             <ReportPageHeader
-              discoveryStatus={discoveryStatus}
+              agentStatus={agentStatus}
               onExportClick={openExportModal}
             />
           </StackItem>
@@ -610,7 +607,7 @@ export const ReportContainer: React.FC = () => {
       <Stack hasGutter>
         <StackItem>
           <ReportPageHeader
-            discoveryStatus={discoveryStatus}
+            agentStatus={agentStatus}
             onExportClick={openExportModal}
           />
         </StackItem>
