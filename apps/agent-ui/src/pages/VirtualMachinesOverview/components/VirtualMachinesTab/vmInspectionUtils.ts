@@ -110,17 +110,6 @@ export function buildStartInspectionVmIds(
 const CANCEL_RETRY_DELAY_MS = 2000;
 const CANCEL_MAX_ATTEMPTS = 5;
 
-/**
- * Heuristic: the backend may report user-initiated mid-run cancels as `error`
- * (virt-inspector killed with exit code 1) rather than state `canceled`.
- * Natural virt-inspector crashes can match the same pattern — a distinct
- * backend flag would be needed to tell them apart reliably.
- */
-export function isLikelyCanceledInspectionError(error?: string): boolean {
-  if (!error) return false;
-  return /virt-inspector failed \(exit code/i.test(error);
-}
-
 function isRetryableCancelError(err: unknown): boolean {
   if (!(err instanceof ResponseError)) return false;
   const status = err.response?.status;
