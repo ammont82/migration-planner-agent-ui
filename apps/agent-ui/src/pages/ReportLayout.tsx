@@ -8,6 +8,7 @@ import {
   MastheadMain,
   MastheadToggle,
   Nav,
+  NavGroup,
   NavItem,
   NavList,
   Page,
@@ -21,31 +22,79 @@ import {
   ToolbarItem,
 } from "@patternfly/react-core";
 import type React from "react";
-import { useEffect } from "react";
+import { useEffect, useMemo } from "react";
 import { Outlet, useLocation, useNavigate } from "react-router-dom";
 import RedHatOpenShiftLogo from "../assets/RedHatOpenShiftLogo.png";
 import VCenterCredentialsDropdownMenu from "../credentials/VCenterCredentialsDropdownMenu";
 
-const NAV_ITEMS = [
-  { path: "/report/vms-overview", label: "Virtual machines overview" },
-  { path: "/report/groups", label: "Groups" },
+interface ReportNavItem {
+  path: string;
+  label: string;
+}
+
+interface ReportNavSection {
+  title: string;
+  items: ReportNavItem[];
+}
+
+const NAV_SECTIONS: ReportNavSection[] = [
   {
-    path: "/report/storage-offload-estimator",
-    label: "Storage offload estimator",
+    title: "Reporting",
+    items: [
+      { path: "/report/vms-overview", label: "Virtual machines overview" },
+      { path: "/report/groups", label: "Groups" },
+    ],
   },
-] as const;
+  {
+    title: "Tools",
+    items: [
+      {
+        path: "/report/storage-offload-estimator",
+        label: "Storage offload estimator",
+      },
+      { path: "/report/report-comparison", label: "Report comparison" },
+    ],
+  },
+];
 
 const appTitleStyle = css`
   padding: var(--pf-t--global--spacer--md);
-  border-bottom: 2px solid var(--pf-t--global--color--nonstatus--gray--100);
+  margin-bottom: var(--pf-t--global--spacer--sm);
+`;
+
+const navGroupStyle = css`
+  .pf-v6-c-nav__section-title {
+    font-weight: var(--pf-t--global--font--weight--body--bold);
+    color: var(--pf-t--global--text--color--regular);
+    font-size: var(--pf-t--global--font--size--body--default);
+    padding-inline: var(--pf-t--global--spacer--md);
+  }
+`;
+
+const navItemStyle = css`
+  .pf-v6-c-nav__link {
+    color: var(--pf-t--global--text--color--subtle);
+    border-radius: var(--pf-t--global--border--radius--medium);
+    margin-inline: var(--pf-t--global--spacer--sm);
+  }
+
+  &.report-nav-item-active .pf-v6-c-nav__link {
+    background-color: var(--pf-t--global--background--color--primary--default);
+    color: var(--pf-t--global--text--color--regular);
+    font-weight: var(--pf-t--global--font--weight--body--default);
+  }
 `;
 
 export const ReportLayout: React.FC = () => {
   const location = useLocation();
   const navigate = useNavigate();
 
-  const activeItem = NAV_ITEMS.find((item) =>
-    location.pathname.startsWith(item.path),
+  const activeItem = useMemo(
+    () =>
+      NAV_SECTIONS.flatMap((section) => section.items).find((item) =>
+        location.pathname.startsWith(item.path),
+      ),
+    [location.pathname],
   );
 
   useEffect(() => {
@@ -97,14 +146,26 @@ export const ReportLayout: React.FC = () => {
             </Title>
             <Nav aria-label="Main navigation">
               <NavList>
-                {NAV_ITEMS.map((item) => (
-                  <NavItem
-                    key={item.path}
-                    isActive={activeItem?.path === item.path}
-                    onClick={() => navigate(item.path)}
+                {NAV_SECTIONS.map((section) => (
+                  <NavGroup
+                    key={section.title}
+                    title={section.title}
+                    className={navGroupStyle}
                   >
-                    {item.label}
-                  </NavItem>
+                    {section.items.map((item) => {
+                      const isActive = activeItem?.path === item.path;
+                      return (
+                        <NavItem
+                          key={item.path}
+                          isActive={isActive}
+                          className={`${navItemStyle}${isActive ? " report-nav-item-active" : ""}`}
+                          onClick={() => navigate(item.path)}
+                        >
+                          {item.label}
+                        </NavItem>
+                      );
+                    })}
+                  </NavGroup>
                 ))}
               </NavList>
             </Nav>
