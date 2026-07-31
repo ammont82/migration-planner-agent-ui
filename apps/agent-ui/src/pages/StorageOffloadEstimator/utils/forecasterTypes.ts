@@ -1,6 +1,5 @@
 // Types for the Storage Offload Estimator / Forecaster API
-// Base URL: /api/v1/forecaster
-// Kept in sync with api/v1/openapi.yaml (ForecasterStartRequest, DatastoreDetail, etc.)
+// Base URL: /api/v2/forecaster (v1 used POST /forecaster/datastores; v2 uses GET)
 
 export interface ForecasterCredentials {
   url: string;

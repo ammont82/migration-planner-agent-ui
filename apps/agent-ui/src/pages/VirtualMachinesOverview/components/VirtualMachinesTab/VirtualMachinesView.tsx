@@ -1,10 +1,10 @@
-import type {
-  DefaultApiInterface,
-  VirtualMachine,
-} from "@openshift-migration-advisor/agent-sdk";
+import type { VirtualMachine } from "@openshift-migration-advisor/agent-sdk";
 import type React from "react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useSearchParams } from "react-router-dom";
+import { useAgentStatus } from "../../../../common/AgentStatusContext";
+import type { DefaultApiInterface } from "../../../../common/agentApi";
+import { getLatestCollectionId } from "../../../../common/collectionApi";
 import { AddLabelsModal } from "../../../Groups/components/modals/AddLabelsModal";
 import { AddToGroupModal } from "../../../Groups/components/modals/AddToGroupModal";
 import { CreateGroupFromSelectionModal } from "../../../Groups/components/modals/CreateGroupFromSelectionModal";
@@ -20,6 +20,8 @@ import {
 import { buildVmDetailUrl } from "../../../reportTabNavigation";
 import { getAgentApiBasePath } from "../../agentApiConfig";
 import type { MigrationExcludedInventoryChange } from "../../inventoryParsing";
+import type { VirtualMachineWithExclusion } from "../../virtualMachineParsing";
+import { getVmTags } from "../../virtualMachineParsing";
 import {
   buildVmApplicationsMap,
   mergeVmApplicationNames,
@@ -69,7 +71,7 @@ async function updateVmMigrationExcluded(
 
   if (vmIds.length > 1) {
     try {
-      await agentApi.batchUpdateVMExclusion({
+      await agentApi.batchUpdateLatestVMExclusion({
         batchUpdateExclusionRequest: { vmIds, migrationExcluded },
       });
       successfulIds = vmIds;
@@ -81,8 +83,8 @@ async function updateVmMigrationExcluded(
   } else {
     const results = await Promise.allSettled(
       vmIds.map((id) =>
-        agentApi.updateVM({
-          id,
+        agentApi.updateLatestVirtualMachine({
+          vmId: id,
           virtualMachineUpdateRequest: { migrationExcluded },
         }),
       ),
@@ -107,6 +109,7 @@ async function updateVmMigrationExcluded(
       ...(vm ?? {
         id,
         name: id,
+        vCenterID: "",
         vCenterState: "",
         cluster: "",
         datacenter: "",
@@ -116,7 +119,7 @@ async function updateVmMigrationExcluded(
         migratable: false,
       }),
       migrationExcluded: !migrationExcluded,
-    };
+    } as VirtualMachineWithExclusion;
   });
 
   if (successfulIds.length > 0) {
@@ -169,6 +172,8 @@ interface VirtualMachinesViewProps {
   /** Base filter applied before table filters (e.g. group membership). */
   scopedFilterExpression?: string;
   sortFields?: string[];
+  /** Bumps when inventory/collection data is reloaded so lookups refresh. */
+  collectionRefreshKey?: number;
 }
 
 export const VirtualMachinesView: React.FC<VirtualMachinesViewProps> = ({
@@ -190,7 +195,10 @@ export const VirtualMachinesView: React.FC<VirtualMachinesViewProps> = ({
   groupContext,
   scopedFilterExpression,
   sortFields = [],
+  collectionRefreshKey = 0,
 }) => {
+  const { latestCollectionId, collectorStatus } = useAgentStatus();
+  const applicationLookupKey = `${latestCollectionId ?? ""}:${collectorStatus?.status ?? ""}:${collectionRefreshKey}`;
   const [searchParams, setSearchParams] = useSearchParams();
   const variant = groupContext ? "groups" : "overview";
   const [selectedVMId, setSelectedVMId] = useState<string | null>(null);
@@ -286,22 +294,44 @@ export const VirtualMachinesView: React.FC<VirtualMachinesViewProps> = ({
     void loadVmGroupMembership();
   }, [loadVmGroupMembership]);
 
-  const loadVmApplications = useCallback(async () => {
+  // biome-ignore lint/correctness/useExhaustiveDependencies: re-fetch when collection context or inventory revision changes
+  useEffect(() => {
     if (!agentApi) {
       return;
     }
-    try {
-      const response = await agentApi.getApplications();
-      setVmApplicationsMap(buildVmApplicationsMap(response.applications ?? []));
-    } catch (err) {
-      console.warn("Error fetching applications for VM table:", err);
-      setVmApplicationsMap(new Map());
-    }
-  }, [agentApi]);
 
-  useEffect(() => {
+    let cancelled = false;
+
+    const loadVmApplications = async () => {
+      try {
+        const collectionId =
+          latestCollectionId ?? (await getLatestCollectionId(agentApi));
+        if (!collectionId) {
+          if (!cancelled) {
+            setVmApplicationsMap(new Map());
+          }
+          return;
+        }
+        const response = await agentApi.listApplications({ id: collectionId });
+        if (!cancelled) {
+          setVmApplicationsMap(
+            buildVmApplicationsMap(response.applications ?? []),
+          );
+        }
+      } catch (err) {
+        console.warn("Error fetching applications for VM table:", err);
+        if (!cancelled) {
+          setVmApplicationsMap(new Map());
+        }
+      }
+    };
+
     void loadVmApplications();
-  }, [loadVmApplications]);
+
+    return () => {
+      cancelled = true;
+    };
+  }, [agentApi, applicationLookupKey]);
 
   const clientSortFilterExpression = useMemo(() => {
     const userExpression = filtersToByExpression(
@@ -459,7 +489,7 @@ export const VirtualMachinesView: React.FC<VirtualMachinesViewProps> = ({
       return;
     }
     try {
-      const data = await agentApi.getVMLabels();
+      const data = await agentApi.getLatestVMLabels();
       setAvailableLabels(data.labels ?? []);
     } catch (err) {
       console.error("Error fetching labels:", err);
@@ -481,7 +511,7 @@ export const VirtualMachinesView: React.FC<VirtualMachinesViewProps> = ({
     const labelSet = new Set<string>();
     for (const vm of vms) {
       if (addLabelsVMIds.includes(vm.id)) {
-        const vmLabels = (vm as VirtualMachine & { labels?: string[] }).labels;
+        const vmLabels = getVmTags(vm);
         if (vmLabels) {
           for (const l of vmLabels) labelSet.add(l);
         }
@@ -615,14 +645,14 @@ export const VirtualMachinesView: React.FC<VirtualMachinesViewProps> = ({
       const vmIds = addLabelsVMIds;
 
       const addPromises = labelsToAdd.map((label) =>
-        agentApi.updateLabelVMs({
+        agentApi.updateLatestLabelVMs({
           label,
           updateLabelVMsRequest: { add: vmIds },
         }),
       );
 
       const removePromises = labelsToRemove.map((label) =>
-        agentApi.updateLabelVMs({
+        agentApi.updateLatestLabelVMs({
           label,
           updateLabelVMsRequest: { remove: vmIds },
         }),
@@ -846,13 +876,15 @@ export const VirtualMachinesView: React.FC<VirtualMachinesViewProps> = ({
   }, [stopPolling]);
 
   if (selectedVMId) {
+    const selectedVM = vms.find((vm) => vm.id === selectedVMId);
     return (
       <VMDetailsPage
         vmId={selectedVMId}
         onBack={handleBack}
-        inspectionActive={inspectionActive}
+        inspectionStatus={selectedVM?.inspectionStatus}
         scrollToSection={vmSectionParam}
         onScrollToSectionComplete={handleScrollToSectionComplete}
+        collectionRefreshKey={collectionRefreshKey}
       />
     );
   }
