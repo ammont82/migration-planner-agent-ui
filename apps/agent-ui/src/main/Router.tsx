@@ -71,6 +71,15 @@ export const router = createBrowserRouter(
             return { Component: StorageOffloadPage };
           },
         },
+        {
+          path: "report-comparison",
+          lazy: async () => {
+            const { ReportComparisonPage } = await import(
+              "../pages/ReportComparison/ReportComparisonPage.tsx"
+            );
+            return { Component: ReportComparisonPage };
+          },
+        },
       ],
     },
     {
