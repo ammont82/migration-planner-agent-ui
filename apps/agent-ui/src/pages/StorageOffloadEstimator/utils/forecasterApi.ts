@@ -121,14 +121,13 @@ export async function putCredentials(
   await handleResponse<void>(res);
 }
 
-/** POST /forecaster/datastores — returns datastores with storage vendor and
- *  capability information. No credentials needed. */
+/** GET /forecaster/datastores — returns datastores with storage vendor and
+ *  capability information. Uses stored credentials / latest collection (v2). */
 export async function postDatastores(
   basePath: string,
 ): Promise<ForecasterDatastore[]> {
   const res = await fetch(`${getForecasterBasePath(basePath)}/datastores`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
+    method: "GET",
   });
   return handleResponse<ForecasterDatastore[]>(res);
 }
