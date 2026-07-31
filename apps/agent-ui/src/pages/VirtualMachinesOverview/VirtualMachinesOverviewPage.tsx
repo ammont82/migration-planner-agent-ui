@@ -6,6 +6,7 @@ import type {
 import { ResponseError } from "@openshift-migration-advisor/agent-sdk";
 import {
   Alert,
+  AlertActionCloseButton,
   Content,
   MenuToggle,
   type MenuToggleElement,
@@ -26,8 +27,10 @@ import { useSearchParams } from "react-router-dom";
 import { useAgentStatus } from "../../common/AgentStatusContext";
 import type { DefaultApiInterface } from "../../common/agentApi";
 import { getLatestCollectionId } from "../../common/collectionApi";
+import { getCollectionProgressInfo } from "../../common/collectionProgress";
 import {
   AppEmptyState,
+  CollectionProgress,
   DataSharingAlert,
   DataSharingModal,
 } from "../../common/components/index";
@@ -49,6 +52,8 @@ import { ApplicationsView } from "./components/ApplicationsTab/ApplicationsView"
 import { Dashboard } from "./components/Dashboard/Dashboard";
 import { ExportCsvModal } from "./components/Export/ExportCsvModal";
 import { useExportInventory } from "./components/Export/useExportInventory";
+import { RunNewReportModal } from "./components/RunNewReport/RunNewReportModal";
+import { useRunNewReport } from "./components/RunNewReport/useRunNewReport";
 import { VirtualMachinesView } from "./components/VirtualMachinesTab/VirtualMachinesView";
 import { VMUtilizationMetrics } from "./components/VirtualMachinesTab/VMUtilizationMetrics";
 import { createRefreshVmTableFilterOptions } from "./components/VirtualMachinesTab/vmFilterOptions";
@@ -92,6 +97,7 @@ export const ReportContainer: React.FC = () => {
   const [shareError, setShareError] = useState<string | null>(null);
   const [utilizationMetrics, setUtilizationMetrics] =
     useState<RightsizingClusterUtilization | null>(null);
+  const [reportDataRefreshKey, setReportDataRefreshKey] = useState(0);
 
   // Separate request IDs for the initial/effect-driven fetch vs. polling refresh
   // so that concurrent calls from different sources don't discard each other's
@@ -368,6 +374,75 @@ export const ReportContainer: React.FC = () => {
 
   const discoveryStatus = formatDiscoveryStatus(agentStatus);
 
+  const handleReportRefreshCompleted = useCallback(async () => {
+    setVmsPage(1);
+    setFilterOptionsFetched(false);
+
+    // Retry inventory load briefly — latest inventory can lag the new collection.
+    let inventoryLoaded = false;
+    for (let attempt = 0; attempt < 5; attempt += 1) {
+      inventoryLoaded = await reloadInventory();
+      if (inventoryLoaded) {
+        break;
+      }
+      if (attempt < 4) {
+        await new Promise((resolve) => {
+          setTimeout(resolve, 1000);
+        });
+      }
+    }
+
+    if (!inventoryLoaded) {
+      throw new Error(
+        "Could not load the updated inventory. Please refresh the page.",
+      );
+    }
+
+    await Promise.all([
+      refreshVMs().catch((err) => {
+        console.error("Error refreshing VMs after new report:", err);
+      }),
+      refreshApplications().catch((err) => {
+        console.error("Error refreshing applications after new report:", err);
+      }),
+      refetchAgentStatus().catch((err) => {
+        console.error("Error refetching agent status after new report:", err);
+      }),
+      Promise.resolve(refreshFilterOptions({ force: true })).catch(
+        () => undefined,
+      ),
+    ]);
+
+    setReportDataRefreshKey((current) => current + 1);
+  }, [
+    reloadInventory,
+    refreshVMs,
+    refreshApplications,
+    refetchAgentStatus,
+    refreshFilterOptions,
+  ]);
+
+  const {
+    latestReportRun,
+    isModalOpen: isRunNewReportModalOpen,
+    isCollecting,
+    collectorStatus,
+    showReadyAlert,
+    collectError,
+    openModal: openRunNewReportModal,
+    closeModal: closeRunNewReportModal,
+    confirmRun: confirmRunNewReport,
+    dismissReadyAlert,
+    dismissCollectError,
+  } = useRunNewReport(agentApi, {
+    onCompleted: handleReportRefreshCompleted,
+  });
+
+  const collectionProgress = getCollectionProgressInfo(
+    collectorStatus,
+    collectError,
+  );
+
   const {
     isExportModalOpen,
     showExport,
@@ -597,13 +672,61 @@ export const ReportContainer: React.FC = () => {
         <StackItem>
           <ReportPageHeader
             discoveryStatus={discoveryStatus}
+            latestReportRun={latestReportRun}
+            showRunNewReport={hasCollectionData}
+            isCollecting={isCollecting}
+            onRunNewReportClick={openRunNewReportModal}
             showExport={showExport}
             onExportClick={openExportModal}
           />
         </StackItem>
-        <StackItem>
-          <Header totalVMs={totalVMs} totalClusters={totalClusters} />
-        </StackItem>
+
+        {isCollecting && (
+          <StackItem>
+            <Alert variant="info" isInline title="Running a new vSphere report">
+              <Content component="p">
+                Capturing a fresh snapshot can take a few minutes.
+              </Content>
+              {collectionProgress.statusText ? (
+                <CollectionProgress
+                  percentage={collectionProgress.percentage}
+                  statusText={collectionProgress.statusText}
+                />
+              ) : null}
+            </Alert>
+          </StackItem>
+        )}
+
+        {showReadyAlert && !isCollecting && (
+          <StackItem>
+            <Alert
+              variant="success"
+              isInline
+              title="New report ready"
+              actionClose={
+                <AlertActionCloseButton onClose={dismissReadyAlert} />
+              }
+            >
+              Your migration report now reflects the latest infrastructure
+              snapshot.
+            </Alert>
+          </StackItem>
+        )}
+
+        {collectError && !isCollecting && (
+          <StackItem>
+            <Alert
+              variant="danger"
+              isInline
+              title="New report failed"
+              actionClose={
+                <AlertActionCloseButton onClose={dismissCollectError} />
+              }
+            >
+              {collectError}
+            </Alert>
+          </StackItem>
+        )}
 
         {!isDataShared && (
           <StackItem>
@@ -650,6 +773,10 @@ export const ReportContainer: React.FC = () => {
           </Select>
         </StackItem>
 
+        <StackItem>
+          <Header totalVMs={totalVMs} totalClusters={totalClusters} />
+        </StackItem>
+
         {utilizationMetrics && (
           <StackItem>
             <Content component="p">
@@ -673,7 +800,7 @@ export const ReportContainer: React.FC = () => {
               <div style={{ marginTop: "24px" }}>
                 {clusterView.viewInfra && clusterView.viewVms ? (
                   <Dashboard
-                    key={`assessment-${inventoryRevision}-${clusterView.viewVms.total ?? 0}-${clusterView.selectionId}`}
+                    key={`assessment-${inventoryRevision}-${reportDataRefreshKey}-${clusterView.viewVms.total ?? 0}-${clusterView.selectionId}`}
                     infra={clusterView.viewInfra}
                     cpuCores={clusterView.cpuCores}
                     ramGB={clusterView.ramGB}
@@ -764,6 +891,12 @@ export const ReportContainer: React.FC = () => {
         isExporting={isExporting}
         onClose={closeExportModal}
         onExport={confirmExport}
+      />
+
+      <RunNewReportModal
+        isOpen={isRunNewReportModalOpen}
+        onConfirm={confirmRunNewReport}
+        onCancel={closeRunNewReportModal}
       />
     </PageSection>
   );
