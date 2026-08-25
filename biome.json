@@ -34,7 +34,7 @@
   },
   "overrides": [
     {
-      "includes": ["./packages/ioc/**"],
+      "includes": ["./packages/ioc/**", "./packages/shared-components/**"],
       "linter": { "domains": { "react": "recommended" } }
     }
   ]

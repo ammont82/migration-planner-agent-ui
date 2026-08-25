@@ -857,6 +857,12 @@ __metadata:
   languageName: unknown
   linkType: soft
 
+"@openshift-migration-advisor/shared-components@workspace:packages/shared-components":
+  version: 0.0.0-use.local
+  resolution: "@openshift-migration-advisor/shared-components@workspace:packages/shared-components"
+  languageName: unknown
+  linkType: soft
+
 "@oxc-parser/binding-android-arm-eabi@npm:0.143.0":
   version: 0.143.0
   resolution: "@oxc-parser/binding-android-arm-eabi@npm:0.143.0"

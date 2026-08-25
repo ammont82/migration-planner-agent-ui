@@ -1,0 +1,41 @@
+name: Publish shared-components package
+
+on:
+  push:
+    branches: [main, stable]
+    paths:
+      - "packages/shared-components/**"
+    tags:
+      - "v*"
+
+# Required for npm Trusted Publishing (OIDC)
+permissions:
+  id-token: write
+  contents: read
+
+jobs:
+  version:
+    name: Determine version
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.version.outputs.version }}
+    steps:
+      - name: Check out code
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          fetch-depth: 0
+
+      - name: Determine version
+        id: version
+        uses: kubev2v/migration-planner-workflows/.github/actions/determine-version@706ce577094f2687205b5f9c79b952c87dbb48fc
+
+  publish:
+    name: Build and publish shared-components package
+    needs: version
+    uses: kubev2v/migration-planner-workflows/.github/workflows/build-and-publish-package.yml@706ce577094f2687205b5f9c79b952c87dbb48fc
+    with:
+      package-name: "@openshift-migration-advisor/shared-components"
+      package-version: ${{ needs.version.outputs.version }}
+      working-directory: packages/shared-components
+      build-command: "yarn workspace @openshift-migration-advisor/shared-components build"
+    secrets: inherit
