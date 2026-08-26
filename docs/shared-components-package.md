@@ -121,6 +121,12 @@ packages/shared-components/
       "import": "./dist/index.js",
       "types": "./dist/index.d.ts",
       "default": "./dist/index.js"
+    },
+    "./charts": {
+      "development": "./src/charts/index.ts",
+      "import": "./dist/charts/index.js",
+      "types": "./dist/charts/index.d.ts",
+      "default": "./dist/charts/index.js"
     }
   },
   "files": ["dist", "src", "LICENSE", "README.md"],
@@ -134,6 +140,9 @@ packages/shared-components/
     "@patternfly/react-table": "^6.5.0",
     "@emotion/css": "^11.13.0"
   },
+  "peerDependenciesMeta": {
+    "@patternfly/react-charts": { "optional": true }
+  },
   "scripts": {
     "build": "yarn run -T tsc -b",
     "bundle": "yarn build && yarn pack --out ../../out/%s-%v.tgz",
@@ -146,7 +155,7 @@ packages/shared-components/
 }
 ```
 
-> **Charts major alignment:** peer on Charts **v8**. ui-app must upgrade from 7.4.9 → 8.x before consuming chart components (or we temporarily maintain a thin adapter — prefer upgrading ui-app).
+> **Charts major alignment:** `@patternfly/react-charts` **v8** is an **optional** peer, required only when importing `@openshift-migration-advisor/shared-components/charts`. The main entry (`forms` + `report`) must not re-export charts so ui-app on Charts 7 can consume OS cards without resolving `@patternfly/react-charts/victory`.
 
 ---
 
@@ -243,10 +252,10 @@ packages/shared-components/
 
 ```ts
 import {
-  MigrationDonutChart,
-  NetworkOverview,
+  OSDistribution,
   SupportTierBadge,
 } from "@openshift-migration-advisor/shared-components";
+import { MigrationDonutChart } from "@openshift-migration-advisor/shared-components/charts";
 ```
 
 ### ui-app (npm)
@@ -257,11 +266,12 @@ npm install @openshift-migration-advisor/shared-components
 
 ```ts
 import {
-  MigrationDonutChart,
-  NetworkOverview,
+  OSDistribution,
   SupportTierBadge,
 } from "@openshift-migration-advisor/shared-components";
 ```
+
+`MigrationDonutChart` is on `@openshift-migration-advisor/shared-components/charts` and needs PatternFly Charts **v8** (`@patternfly/react-charts/victory`). ui-app stays on Charts v7 until that donut is unified; do not import `/charts` from ui-app until then.
 
 ---
 

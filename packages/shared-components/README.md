@@ -6,8 +6,8 @@ Includes:
 
 - PatternFly form field wrappers (`react-hook-form`)
 - Guest OS support-tier helpers and badges
-- Report chart primitives (`MigrationDonutChart`)
 - Operating Systems distribution card
+- Report chart primitives (`MigrationDonutChart`) via the `/charts` subpath
 
 ## Installation
 
@@ -21,14 +21,26 @@ npm install @openshift-migration-advisor/shared-components
 
 ## Usage
 
+Forms and OS report widgets (no PatternFly Charts):
+
 ```tsx
 import {
-  MigrationDonutChart,
   OSDistribution,
   SupportTierBadge,
   TextInputFormGroup,
 } from "@openshift-migration-advisor/shared-components";
 ```
+
+Donut charts import Victory from `@patternfly/react-charts/victory`. That lives in this package’s `MigrationDonutChart` — consumers must provide `@patternfly/react-charts` **v8+** (optional peer) and import the charts entry:
+
+```tsx
+import {
+  MigrationDonutChart,
+  type MigrationDonutChartProps,
+} from "@openshift-migration-advisor/shared-components/charts";
+```
+
+Do not import charts from the main entry: that would force every consumer (including ui-app on Charts v7) to resolve Victory.
 
 Components are SDK-agnostic: pass already-shaped props (for example `OSDistributionEntry` maps). Map `agent-sdk` / `planner-sdk` models at the app boundary.
 

@@ -860,6 +860,29 @@ __metadata:
 "@openshift-migration-advisor/shared-components@workspace:packages/shared-components":
   version: 0.0.0-use.local
   resolution: "@openshift-migration-advisor/shared-components@workspace:packages/shared-components"
+  dependencies:
+    "@emotion/css": "npm:^11.13.0"
+    "@patternfly/react-charts": "npm:^8.6.1"
+    "@patternfly/react-core": "npm:^6.6.1"
+    "@patternfly/react-icons": "npm:^6.6.1"
+    "@patternfly/react-table": "npm:^6.6.1"
+    "@patternfly/react-tokens": "npm:^6.6.1"
+    react: "npm:^18.3.1"
+    react-dom: "npm:^18.3.1"
+    react-hook-form: "npm:^7.79.0"
+  peerDependencies:
+    "@emotion/css": ^11.13.0
+    "@patternfly/react-charts": ^8.0.0
+    "@patternfly/react-core": ^6.5.0
+    "@patternfly/react-icons": ^6.5.0
+    "@patternfly/react-table": ^6.5.0
+    "@patternfly/react-tokens": ^6.5.0
+    react: ^18.3.0
+    react-dom: ^18.3.0
+    react-hook-form: ^7.70.0
+  peerDependenciesMeta:
+    "@patternfly/react-charts":
+      optional: true
   languageName: unknown
   linkType: soft
 

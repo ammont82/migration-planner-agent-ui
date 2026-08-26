@@ -16,12 +16,21 @@
       "import": "./dist/index.js",
       "types": "./dist/index.d.ts",
       "default": "./dist/index.js"
+    },
+    "./charts": {
+      "development": "./src/charts/index.ts",
+      "import": "./dist/charts/index.js",
+      "types": "./dist/charts/index.d.ts",
+      "default": "./dist/charts/index.js"
     }
   },
   "typesVersions": {
     "*": {
       ".": [
         "./dist/index.d.ts"
+      ],
+      "charts": [
+        "./dist/charts/index.d.ts"
       ]
     }
   },
@@ -43,5 +52,32 @@
     "src",
     "LICENSE",
     "README.md"
-  ]
+  ],
+  "peerDependencies": {
+    "@emotion/css": "^11.13.0",
+    "@patternfly/react-charts": "^8.0.0",
+    "@patternfly/react-core": "^6.5.0",
+    "@patternfly/react-icons": "^6.5.0",
+    "@patternfly/react-table": "^6.5.0",
+    "@patternfly/react-tokens": "^6.5.0",
+    "react": "^18.3.0",
+    "react-dom": "^18.3.0",
+    "react-hook-form": "^7.70.0"
+  },
+  "peerDependenciesMeta": {
+    "@patternfly/react-charts": {
+      "optional": true
+    }
+  },
+  "devDependencies": {
+    "@emotion/css": "^11.13.0",
+    "@patternfly/react-charts": "^8.6.1",
+    "@patternfly/react-core": "^6.6.1",
+    "@patternfly/react-icons": "^6.6.1",
+    "@patternfly/react-table": "^6.6.1",
+    "@patternfly/react-tokens": "^6.6.1",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "react-hook-form": "^7.79.0"
+  }
 }
