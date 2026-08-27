@@ -1,17 +1,21 @@
 import { css } from "@emotion/css";
 import type { Host } from "@openshift-migration-advisor/agent-sdk";
 import {
+  dashboardStyles,
+  MigrationDonutChart,
+} from "@openshift-migration-advisor/shared-components";
+import {
   Card,
   CardBody,
   CardTitle,
+  EmptyStateVariant,
   Flex,
   FlexItem,
 } from "@patternfly/react-core";
-import { ServerIcon } from "@patternfly/react-icons";
+import { InboxIcon, ServerIcon } from "@patternfly/react-icons";
 import type React from "react";
 import { useMemo } from "react";
-import { dashboardStyles } from "./dashboardStyles";
-import MigrationDonutChart from "./MigrationDonutChart";
+import { AppEmptyState } from "../../../../common/components";
 
 const styles = {
   cardSubtitle: css`
@@ -109,24 +113,33 @@ export const HostsOverview: React.FC<HostsOverviewProps> = ({
         </Flex>
       </CardTitle>
       <CardBody className={dashboardStyles.cardBodyScrollable}>
-        <MigrationDonutChart
-          data={slices}
-          height={300}
-          width={420}
-          donutThickness={18}
-          titleFontSize={34}
-          legend={legend}
-          title={`${totalHosts}`}
-          subTitle="Hosts"
-          subTitleColor="#9a9da0"
-          tooltipLabelFormatter={({
-            datum,
-            percent,
-          }: {
-            datum: { countDisplay?: string | number };
-            percent: number;
-          }) => `${datum.countDisplay}\n${percent.toFixed(1)}%`}
-        />
+        {slices.length === 0 ? (
+          <AppEmptyState
+            titleText="No data available"
+            icon={InboxIcon}
+            variant={EmptyStateVariant.xs}
+            wrapInBullseye={false}
+          />
+        ) : (
+          <MigrationDonutChart
+            data={slices}
+            height={300}
+            width={420}
+            donutThickness={18}
+            titleFontSize={34}
+            legend={legend}
+            title={`${totalHosts}`}
+            subTitle="Hosts"
+            subTitleColor="#9a9da0"
+            tooltipLabelFormatter={({
+              datum,
+              percent,
+            }: {
+              datum: { countDisplay?: string | number };
+              percent: number;
+            }) => `${datum.countDisplay}\n${percent.toFixed(1)}%`}
+          />
+        )}
       </CardBody>
     </Card>
   );

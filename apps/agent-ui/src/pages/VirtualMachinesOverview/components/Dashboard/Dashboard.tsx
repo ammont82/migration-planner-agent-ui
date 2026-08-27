@@ -5,6 +5,10 @@ import type {
   VMs,
 } from "@openshift-migration-advisor/agent-sdk";
 import {
+  OSDistribution,
+  type OSDistributionEntry,
+} from "@openshift-migration-advisor/shared-components";
+import {
   Gallery,
   GalleryItem,
   Grid,
@@ -20,8 +24,6 @@ import { CpuAndMemoryOverview } from "./CpuAndMemoryOverview";
 import { ErrorTable } from "./ErrorTable";
 import { HostsOverview } from "./HostsOverview";
 import { NetworkOverview } from "./NetworkOverview";
-import { OSDistribution } from "./OSDistribution";
-import type { OSDistributionEntry } from "./osSupportTier";
 import { StorageOverview } from "./StorageOverview";
 import { VMMigrationStatus } from "./VMMigrationStatus";
 import { WarningsTable } from "./WarningsTable";
@@ -58,7 +60,9 @@ export const Dashboard: React.FC<DashboardProps> = ({
           acc[osName] = {
             count: osInfo.count,
             supported: osInfo.supported,
-            supportTier: osInfo.supportTier,
+            supportTier: osInfo.supportTier as
+              | OSDistributionEntry["supportTier"]
+              | undefined,
             upgradeRecommendation: osInfo.upgradeRecommendation || "",
           };
           return acc;

@@ -1,4 +1,5 @@
 import type { MigrationIssue } from "@openshift-migration-advisor/agent-sdk";
+import { dashboardStyles } from "@openshift-migration-advisor/shared-components";
 import {
   Card,
   CardBody,
@@ -10,7 +11,6 @@ import { ExclamationCircleIcon } from "@patternfly/react-icons";
 import type React from "react";
 import { AppEmptyState } from "../../../../common/components";
 import { ReportTable } from "../../../Groups/components/ReportTable";
-import { dashboardStyles } from "./dashboardStyles";
 
 interface ErrorTableProps {
   errors: MigrationIssue[];

@@ -3,23 +3,26 @@ import type {
   VMResourceBreakdown,
 } from "@openshift-migration-advisor/agent-sdk";
 import {
+  dashboardStyles,
+  MigrationDonutChart,
+} from "@openshift-migration-advisor/shared-components";
+import {
   Card,
   CardBody,
   CardTitle,
   Dropdown,
   DropdownItem,
   DropdownList,
+  EmptyStateVariant,
   Flex,
   FlexItem,
   MenuToggle,
   type MenuToggleElement,
 } from "@patternfly/react-core";
-import { TopologyIcon } from "@patternfly/react-icons";
+import { InboxIcon, TopologyIcon } from "@patternfly/react-icons";
 import type React from "react";
 import { useMemo, useState } from "react";
-import { dashboardStyles } from "./dashboardStyles";
-
-import MigrationDonutChart from "./MigrationDonutChart";
+import { AppEmptyState } from "../../../../common/components";
 
 // Reuse an extended palette similar to ClustersOverview to provide stable colors
 const colorPalette = [
@@ -309,39 +312,55 @@ export const NetworkOverview: React.FC<NetworkOverviewProps> = ({
         </Flex>
       </CardTitle>
       <CardBody className={dashboardStyles.cardBodyScrollable}>
-        {viewMode === "networkDistribution" && (
-          <MigrationDonutChart
-            data={chartData}
-            height={300}
-            width={420}
-            donutThickness={18}
-            titleFontSize={34}
-            legend={legend}
-            title={title}
-            subTitle={subTitle}
-            subTitleColor="#9a9da0"
-            tooltipLabelFormatter={({ datum, percent }) =>
-              `${datum.countDisplay}\n${percent.toFixed(1)}%\nVLAN: ${legendVlanMap[datum.legendCategory] ?? "-"}`
-            }
-          />
-        )}
-        {viewMode === "nicCount" && (
-          <MigrationDonutChart
-            data={nicChartData}
-            height={300}
-            width={420}
-            donutThickness={18}
-            titleFontSize={34}
-            legend={nicLegend}
-            title={nicTitle}
-            subTitle={nicSubTitle}
-            subTitleColor="#9a9da0"
-            marginLeft="12%"
-            tooltipLabelFormatter={({ datum, percent }) =>
-              `${datum.countDisplay}\n${percent.toFixed(1)}%`
-            }
-          />
-        )}
+        {viewMode === "networkDistribution" &&
+          (chartData.length === 0 ? (
+            <AppEmptyState
+              titleText="No data available"
+              icon={InboxIcon}
+              variant={EmptyStateVariant.xs}
+              wrapInBullseye={false}
+            />
+          ) : (
+            <MigrationDonutChart
+              data={chartData}
+              height={300}
+              width={420}
+              donutThickness={18}
+              titleFontSize={34}
+              legend={legend}
+              title={title}
+              subTitle={subTitle}
+              subTitleColor="#9a9da0"
+              tooltipLabelFormatter={({ datum, percent }) =>
+                `${datum.countDisplay}\n${percent.toFixed(1)}%\nVLAN: ${legendVlanMap[datum.legendCategory] ?? "-"}`
+              }
+            />
+          ))}
+        {viewMode === "nicCount" &&
+          (nicChartData.length === 0 ? (
+            <AppEmptyState
+              titleText="No data available"
+              icon={InboxIcon}
+              variant={EmptyStateVariant.xs}
+              wrapInBullseye={false}
+            />
+          ) : (
+            <MigrationDonutChart
+              data={nicChartData}
+              height={300}
+              width={420}
+              donutThickness={18}
+              titleFontSize={34}
+              legend={nicLegend}
+              title={nicTitle}
+              subTitle={nicSubTitle}
+              subTitleColor="#9a9da0"
+              marginLeft="12%"
+              tooltipLabelFormatter={({ datum, percent }) =>
+                `${datum.countDisplay}\n${percent.toFixed(1)}%`
+              }
+            />
+          ))}
       </CardBody>
     </Card>
   );
