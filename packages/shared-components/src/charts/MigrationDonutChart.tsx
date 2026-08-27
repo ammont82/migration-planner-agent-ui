@@ -8,15 +8,11 @@ import { css } from "@emotion/css";
 import {
   ChartDonut,
   ChartLabel,
+  ChartLegend,
+  ChartTooltip,
 } from "@patternfly/react-charts/dist/esm/victory/index.js";
-import {
-  EmptyState,
-  EmptyStateVariant,
-  Flex,
-  FlexItem,
-} from "@patternfly/react-core";
-import { InboxIcon } from "@patternfly/react-icons";
-import type { FC } from "react";
+import { Flex, FlexItem } from "@patternfly/react-core";
+import type { FC, ReactElement } from "react";
 import { useCallback, useMemo } from "react";
 
 export interface MigrationDonutChartDatum {
@@ -29,6 +25,8 @@ export interface MigrationDonutChartDatum {
   clusterNames?: string[];
   networkNames?: string[];
 }
+
+export type MigrationDonutChartLegendVariant = "html" | "chart";
 
 export interface MigrationDonutChartProps {
   data: MigrationDonutChartDatum[];
@@ -55,16 +53,60 @@ export interface MigrationDonutChartProps {
     percent: number;
     total: number;
   }) => string;
+  /** Agent-ui: slice / legend click drill-down. */
   onItemClick?: (item: MigrationDonutChartDatum) => void;
+  /** Agent-ui: clickable center title overlay. */
   onTitleClick?: () => void;
-  /** When set, used for legend label instead of "name (countDisplay)". */
+  /** Agent-ui: custom HTML legend labels (ignored when legendVariant is "chart"). */
   legendLabelFormatter?: (item: {
     x: string;
     countDisplay?: string | number;
   }) => string;
+  /**
+   * Legend rendering mode.
+   * - `"html"` (default): custom clickable legend used by agent-ui
+   * - `"chart"`: PatternFly ChartLegend used by ui-app
+   */
+  legendVariant?: MigrationDonutChartLegendVariant;
+  /** ui-app ChartLegend: total legend width. */
+  legendWidth?: number;
+  /** ui-app ChartLegend: columns per row. */
+  itemsPerRow?: number;
+  /** ui-app ChartLegend: label font size. */
+  labelFontSize?: number;
+  /** Prefer themed Victory ChartTooltip (default true for chart legend). */
+  useThemedTooltip?: boolean;
 }
 
-const legendColors = ["#0066cc", "#5e40be", "#b6a6e9", "#b98412"];
+const legendColors = [
+  "#0066cc",
+  "#5e40be",
+  "#009596",
+  "#4cb140",
+  "#f0ab00",
+  "#b98412",
+  "#a30000",
+  "#b6a6e9",
+];
+
+/** Victory chart tooltips that respect PatternFly light/dark themes. */
+const themedChartTooltipStyle = {
+  fontSize: 9,
+  fill: "var(--pf-t--global--text--color--regular)",
+} as const;
+
+const themedChartTooltipFlyoutStyle = {
+  stroke: "var(--pf-t--global--border--color--default)",
+  strokeWidth: 1,
+  fill: "var(--pf-t--global--background--color--floating--default)",
+} as const;
+
+const themedChartTooltipFlyoutPadding = {
+  top: 6,
+  bottom: 6,
+  left: 10,
+  right: 10,
+} as const;
 
 const styles = {
   legendIcon: css`
@@ -120,8 +162,8 @@ export const MigrationDonutChart: FC<MigrationDonutChartProps> = ({
   width = 420,
   title,
   subTitle,
-  titleColor = "#000000",
-  subTitleColor = "#000000",
+  titleColor = "var(--pf-t--global--text--color--regular)",
+  subTitleColor = "var(--pf-t--global--text--color--subtle)",
   marginLeft = "0%",
   titleFontSize = 28,
   subTitleFontSize = 14,
@@ -131,30 +173,35 @@ export const MigrationDonutChart: FC<MigrationDonutChartProps> = ({
   onItemClick,
   onTitleClick,
   legendLabelFormatter,
+  legendVariant = "html",
+  legendWidth,
+  itemsPerRow = 1,
+  labelFontSize = 25,
+  useThemedTooltip,
 }) => {
+  const showChartLegend = legendVariant === "chart";
+  const themedTooltipEnabled = useThemedTooltip ?? showChartLegend;
+
   const dynamicLegend = useMemo(() => {
-    return data.reduce(
-      (acc, current) => {
-        const key = `${current.legendCategory}`;
-        if (!acc.seen.has(key)) {
-          acc.seen.add(key);
-          const color =
-            customColors?.[key] ??
-            legendColors[(acc.seen.size - 1) % legendColors.length];
-          acc.result.push({ [key]: color });
-        }
-        return acc;
-      },
-      { seen: new Set(), result: [] } as {
-        seen: Set<string>;
-        result: Record<string, string>[];
-      },
-    ).result;
+    const legendMap: Record<string, string> = {};
+    const seen = new Set<string>();
+
+    for (const item of data) {
+      const key = item.legendCategory;
+      if (!seen.has(key)) {
+        seen.add(key);
+        legendMap[key] =
+          customColors?.[key] ??
+          legendColors[(seen.size - 1) % legendColors.length];
+      }
+    }
+
+    return legendMap;
   }, [data, customColors]);
 
-  const chartLegend = legend ? legend : Object.assign({}, ...dynamicLegend);
+  const chartLegend = legend ?? dynamicLegend;
   const getColor = useCallback(
-    (name: string): string => chartLegend[name],
+    (name: string): string => chartLegend[name] ?? legendColors[0],
     [chartLegend],
   );
 
@@ -170,6 +217,33 @@ export const MigrationDonutChart: FC<MigrationDonutChartProps> = ({
   const colorScale = useMemo(() => {
     return chartData.map((item) => getColor(item.legendCategory));
   }, [chartData, getColor]);
+
+  const legendData = useMemo(() => {
+    return chartData.map((item) => ({
+      name: `${item.x} (${item.countDisplay})`,
+      symbol: { fill: getColor(item.legendCategory) },
+    }));
+  }, [chartData, getColor]);
+
+  const legendWidthValue = legendWidth ?? 800;
+  const legendX = useMemo(() => {
+    const symbolAndGap = 34;
+    const charWidth = labelFontSize * 0.55;
+    const itemWidths = legendData.map(
+      (d) => symbolAndGap + d.name.length * charWidth,
+    );
+    const numCols = Math.min(legendData.length, itemsPerRow);
+    const gutter = 16;
+    let contentWidth = (numCols - 1) * gutter;
+    for (let c = 0; c < numCols; c++) {
+      let maxW = 0;
+      for (let i = c; i < itemWidths.length; i += itemsPerRow) {
+        maxW = Math.max(maxW, itemWidths[i] ?? 0);
+      }
+      contentWidth += maxW;
+    }
+    return Math.max(0, (legendWidthValue - contentWidth) / 2);
+  }, [legendData, itemsPerRow, legendWidthValue, labelFontSize]);
 
   const innerRadius = useMemo(() => {
     const outerApprox = Math.min(width, height) / 2;
@@ -230,16 +304,131 @@ export const MigrationDonutChart: FC<MigrationDonutChartProps> = ({
     ];
   }, [onItemClick, handleClick]);
 
+  const donutTooltip = useMemo(
+    () =>
+      themedTooltipEnabled ? (
+        <ChartTooltip
+          style={themedChartTooltipStyle}
+          flyoutStyle={themedChartTooltipFlyoutStyle}
+          flyoutPadding={themedChartTooltipFlyoutPadding}
+        />
+      ) : undefined,
+    [themedTooltipEnabled],
+  );
+
+  const formatLabel = useCallback(
+    (datum: {
+      x: string;
+      y: number;
+      legendCategory: string;
+      countDisplay?: string | number;
+    }) => {
+      const percent = totalY > 0 ? (Number(datum.y) / totalY) * 100 : 0;
+      return tooltipLabelFormatter
+        ? tooltipLabelFormatter({
+            datum: {
+              x: datum.x,
+              y: Number(datum.y),
+              countDisplay: datum.countDisplay,
+              legendCategory: datum.legendCategory,
+            },
+            percent,
+            total: totalY,
+          })
+        : `${datum.x}: ${datum.countDisplay ?? datum.y}`;
+    },
+    [tooltipLabelFormatter, totalY],
+  );
+
   if (!data || data.length === 0) {
-    return (
-      <EmptyState
-        headingLevel="h3"
-        titleText="No data available"
-        icon={InboxIcon}
-        variant={EmptyStateVariant.xs}
-      />
-    );
+    return null;
   }
+
+  const htmlLegend: ReactElement = (
+    <Flex
+      className={`${styles.legendContainer} ${css`margin-left: ${marginLeft};`}`}
+      justifyContent={{ default: "justifyContentCenter" }}
+      alignItems={{ default: "alignItemsFlexStart" }}
+    >
+      <Flex
+        className={styles.legendInner}
+        spaceItems={{ default: "spaceItemsMd" }}
+        justifyContent={{ default: "justifyContentCenter" }}
+        alignItems={{ default: "alignItemsCenter" }}
+        flexWrap={{ default: "wrap" }}
+      >
+        {data.map((item) => {
+          const label = legendLabelFormatter
+            ? legendLabelFormatter({
+                x: item.name,
+                countDisplay: item.countDisplay,
+              })
+            : item.name;
+
+          const content = (
+            <>
+              <svg
+                width="10"
+                height="10"
+                aria-hidden="true"
+                className={styles.legendIcon}
+              >
+                <title>Legend color indicator</title>
+                <rect
+                  width="10"
+                  height="10"
+                  fill={getColor(item.legendCategory)}
+                />
+              </svg>
+              <span>{label}</span>
+            </>
+          );
+
+          return (
+            <FlexItem key={`${item.legendCategory}-${item.name}`}>
+              {onItemClick ? (
+                <button
+                  type="button"
+                  onClick={() => onItemClick(item)}
+                  className={styles.legendButton}
+                >
+                  {content}
+                </button>
+              ) : (
+                <span className={styles.legendLabel}>{content}</span>
+              )}
+            </FlexItem>
+          );
+        })}
+      </Flex>
+    </Flex>
+  );
+
+  const chartLegendElement: ReactElement = (
+    <FlexItem flex={{ default: "flex_1" }}>
+      <Flex
+        justifyContent={{ default: "justifyContentCenter" }}
+        alignItems={{ default: "alignItemsCenter" }}
+      >
+        <FlexItem>
+          <ChartLegend
+            data={legendData}
+            orientation="horizontal"
+            height={200}
+            width={legendWidthValue}
+            x={legendX}
+            itemsPerRow={itemsPerRow}
+            style={{
+              labels: {
+                fontSize: labelFontSize,
+                fill: "var(--pf-t--global--text--color--regular)",
+              },
+            }}
+          />
+        </FlexItem>
+      </Flex>
+    </FlexItem>
+  );
 
   return (
     <Flex
@@ -252,6 +441,7 @@ export const MigrationDonutChart: FC<MigrationDonutChartProps> = ({
           ariaDesc="Migration data donut chart"
           data={chartData}
           events={chartEvents}
+          labelComponent={donutTooltip}
           labels={({
             datum,
           }: {
@@ -261,21 +451,7 @@ export const MigrationDonutChart: FC<MigrationDonutChartProps> = ({
               legendCategory: string;
               countDisplay?: string | number;
             };
-          }) => {
-            const percent = totalY > 0 ? (Number(datum.y) / totalY) * 100 : 0;
-            return tooltipLabelFormatter
-              ? tooltipLabelFormatter({
-                  datum: {
-                    x: datum.x,
-                    y: Number(datum.y),
-                    countDisplay: datum.countDisplay,
-                    legendCategory: datum.legendCategory,
-                  },
-                  percent,
-                  total: totalY,
-                })
-              : `${datum.x}: ${datum.countDisplay ?? datum.y}`;
-          }}
+          }) => formatLabel(datum)}
           colorScale={colorScale}
           constrainToVisibleArea
           innerRadius={innerRadius}
@@ -306,6 +482,7 @@ export const MigrationDonutChart: FC<MigrationDonutChartProps> = ({
           subTitleComponent={
             subTitle ? (
               <ChartLabel
+                dy={showChartLegend ? 7 : undefined}
                 style={[
                   {
                     fill: subTitleColor,
@@ -343,63 +520,7 @@ export const MigrationDonutChart: FC<MigrationDonutChartProps> = ({
           />
         )}
       </div>
-      <Flex
-        className={`${styles.legendContainer} ${css`margin-left: ${marginLeft};`}`}
-        justifyContent={{ default: "justifyContentCenter" }}
-        alignItems={{ default: "alignItemsFlexStart" }}
-      >
-        <Flex
-          className={styles.legendInner}
-          spaceItems={{ default: "spaceItemsMd" }}
-          justifyContent={{ default: "justifyContentCenter" }}
-          alignItems={{ default: "alignItemsCenter" }}
-          flexWrap={{ default: "wrap" }}
-        >
-          {data.map((item) => {
-            const label = legendLabelFormatter
-              ? legendLabelFormatter({
-                  x: item.name,
-                  countDisplay: item.countDisplay,
-                })
-              : item.name;
-
-            const content = (
-              <>
-                <svg
-                  width="10"
-                  height="10"
-                  aria-hidden="true"
-                  className={styles.legendIcon}
-                >
-                  <title>Legend color indicator</title>
-                  <rect
-                    width="10"
-                    height="10"
-                    fill={getColor(item.legendCategory)}
-                  />
-                </svg>
-                <span>{label}</span>
-              </>
-            );
-
-            return (
-              <FlexItem key={`${item.legendCategory}-${item.name}`}>
-                {onItemClick ? (
-                  <button
-                    type="button"
-                    onClick={() => onItemClick(item)}
-                    className={styles.legendButton}
-                  >
-                    {content}
-                  </button>
-                ) : (
-                  <span className={styles.legendLabel}>{content}</span>
-                )}
-              </FlexItem>
-            );
-          })}
-        </Flex>
-      </Flex>
+      {showChartLegend ? chartLegendElement : htmlLegend}
     </Flex>
   );
 };
