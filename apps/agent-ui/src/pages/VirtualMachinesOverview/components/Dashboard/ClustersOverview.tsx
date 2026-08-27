@@ -1,6 +1,10 @@
 import { css } from "@emotion/css";
 import type { InventoryData } from "@openshift-migration-advisor/agent-sdk";
 import {
+  dashboardStyles,
+  MigrationDonutChart,
+} from "@openshift-migration-advisor/shared-components";
+import {
   Card,
   CardBody,
   CardTitle,
@@ -18,8 +22,6 @@ import type React from "react";
 import { useMemo, useState } from "react";
 
 import { AppEmptyState } from "../../../../common/components";
-import { dashboardStyles } from "./dashboardStyles";
-import MigrationDonutChart from "./MigrationDonutChart";
 
 interface ClustersOverviewProps {
   clustersPerDatacenter: number[];
@@ -421,6 +423,13 @@ export const ClustersOverview: React.FC<ClustersOverviewProps> = ({
               </div>
             </>
           )
+        ) : chartData.length === 0 ? (
+          <AppEmptyState
+            titleText="No data available"
+            icon={InboxIcon}
+            variant={EmptyStateVariant.xs}
+            wrapInBullseye={false}
+          />
         ) : (
           <MigrationDonutChart
             data={chartData}

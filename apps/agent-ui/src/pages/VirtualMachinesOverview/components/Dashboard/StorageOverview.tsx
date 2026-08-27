@@ -1,4 +1,8 @@
 import {
+  dashboardStyles,
+  MigrationDonutChart,
+} from "@openshift-migration-advisor/shared-components";
+import {
   Card,
   CardBody,
   CardTitle,
@@ -30,8 +34,6 @@ import {
   useChartDrillDown,
 } from "../VirtualMachinesTab/vmNavigation";
 import { parseDiskTierLabelToRange } from "../VirtualMachinesTab/vmTableShared";
-import { dashboardStyles } from "./dashboardStyles";
-import MigrationDonutChart from "./MigrationDonutChart";
 
 interface DiskTierData {
   vmCount?: number;
@@ -535,6 +537,13 @@ export const StorageOverview: React.FC<StorageOverviewProps> = ({
                 wrapInBullseye={false}
               />
             )
+          ) : chartData.length === 0 ? (
+            <AppEmptyState
+              titleText="No data available"
+              icon={InboxIcon}
+              variant={EmptyStateVariant.xs}
+              wrapInBullseye={false}
+            />
           ) : (
             <MigrationDonutChart
               {...commonDonutProps}
@@ -587,37 +596,55 @@ export const StorageOverview: React.FC<StorageOverviewProps> = ({
               <div className={dashboardStyles.storageExportSectionTitle}>
                 {VIEW_MODE_LABELS.vmCount}
               </div>
-              <MigrationDonutChart
-                {...commonDonutProps}
-                data={chartDataForVmCount.map((item) => ({
-                  ...item,
-                  countDisplay: `${item.countDisplay} VMs`,
-                }))}
-                legend={tierLegendForVmCount}
-                title={`${totals.totalVMs} VMs`}
-                subTitle={`${totals.totalSize.toFixed(2)} TB`}
-                tooltipLabelFormatter={({ datum, percent }) =>
-                  `${datum.x}: ${datum.countDisplay}\n${percent.toFixed(1)}%`
-                }
-              />
+              {chartDataForVmCount.length === 0 ? (
+                <AppEmptyState
+                  titleText="No data available"
+                  icon={InboxIcon}
+                  variant={EmptyStateVariant.xs}
+                  wrapInBullseye={false}
+                />
+              ) : (
+                <MigrationDonutChart
+                  {...commonDonutProps}
+                  data={chartDataForVmCount.map((item) => ({
+                    ...item,
+                    countDisplay: `${item.countDisplay} VMs`,
+                  }))}
+                  legend={tierLegendForVmCount}
+                  title={`${totals.totalVMs} VMs`}
+                  subTitle={`${totals.totalSize.toFixed(2)} TB`}
+                  tooltipLabelFormatter={({ datum, percent }) =>
+                    `${datum.x}: ${datum.countDisplay}\n${percent.toFixed(1)}%`
+                  }
+                />
+              )}
             </div>
             <div className={dashboardStyles.storageExportSectionMargin}>
               <div className={dashboardStyles.storageExportSectionTitle}>
                 {VIEW_MODE_LABELS.totalSize}
               </div>
-              <MigrationDonutChart
-                {...commonDonutProps}
-                data={chartDataForTotalSize.map((item) => ({
-                  ...item,
-                  countDisplay: `${item.countDisplay} TB`,
-                }))}
-                legend={tierLegendForTotalSize}
-                title={`${totals.totalSize.toFixed(2)} TB`}
-                subTitle={`${totals.totalVMs} VMs`}
-                tooltipLabelFormatter={({ datum, percent }) =>
-                  `${datum.x}: ${datum.countDisplay}\n${percent.toFixed(1)}%`
-                }
-              />
+              {chartDataForTotalSize.length === 0 ? (
+                <AppEmptyState
+                  titleText="No data available"
+                  icon={InboxIcon}
+                  variant={EmptyStateVariant.xs}
+                  wrapInBullseye={false}
+                />
+              ) : (
+                <MigrationDonutChart
+                  {...commonDonutProps}
+                  data={chartDataForTotalSize.map((item) => ({
+                    ...item,
+                    countDisplay: `${item.countDisplay} TB`,
+                  }))}
+                  legend={tierLegendForTotalSize}
+                  title={`${totals.totalSize.toFixed(2)} TB`}
+                  subTitle={`${totals.totalVMs} VMs`}
+                  tooltipLabelFormatter={({ datum, percent }) =>
+                    `${datum.x}: ${datum.countDisplay}\n${percent.toFixed(1)}%`
+                  }
+                />
+              )}
             </div>
             {sharedDisksChartData && totalVMs !== undefined && (
               <div>

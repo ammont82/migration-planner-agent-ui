@@ -25,5 +25,9 @@
     "noUnusedParameters": true,
     "noFallthroughCasesInSwitch": true
   },
-  "include": ["src"]
+  "include": ["src"],
+  "references": [
+    { "path": "../../packages/ioc" },
+    { "path": "../../packages/shared-components" }
+  ]
 }

@@ -1,5 +1,11 @@
 import type { IssuesBreakdown } from "@openshift-migration-advisor/agent-sdk";
 import {
+  chartColorFailure,
+  chartColorSuccess,
+  dashboardStyles,
+  MigrationDonutChart,
+} from "@openshift-migration-advisor/shared-components";
+import {
   Card,
   CardBody,
   CardTitle,
@@ -19,9 +25,6 @@ import {
   type NavigateToVMFilters,
   useChartDrillDown,
 } from "../VirtualMachinesTab/vmNavigation";
-import { chartColorFailure, chartColorSuccess } from "./constants";
-import { dashboardStyles } from "./dashboardStyles";
-import MigrationDonutChart from "./MigrationDonutChart";
 
 type ViewMode = "issuesVsNoIssues" | "issuesBreakdown";
 

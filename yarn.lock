@@ -831,6 +831,7 @@ __metadata:
     "@emotion/css": "npm:^11.13.0"
     "@hookform/resolvers": "npm:^5.4.0"
     "@openshift-migration-advisor/agent-sdk": "npm:0.21.0-7d995d4fcba5"
+    "@openshift-migration-advisor/shared-components": "workspace:*"
     "@patternfly/react-charts": "npm:^8.6.1"
     "@patternfly/react-core": "npm:^6.6.1"
     "@patternfly/react-icons": "npm:^6.6.1"
@@ -858,7 +859,7 @@ __metadata:
   languageName: unknown
   linkType: soft
 
-"@openshift-migration-advisor/shared-components@workspace:packages/shared-components":
+"@openshift-migration-advisor/shared-components@workspace:*, @openshift-migration-advisor/shared-components@workspace:packages/shared-components":
   version: 0.0.0-use.local
   resolution: "@openshift-migration-advisor/shared-components@workspace:packages/shared-components"
   languageName: unknown

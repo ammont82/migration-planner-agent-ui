@@ -3,11 +3,11 @@ import type {
   CredentialStatus,
   VcenterCredentials,
 } from "@openshift-migration-advisor/agent-sdk";
+import { TextInputFormGroup } from "@openshift-migration-advisor/shared-components";
 import { Alert, Form, FormAlert } from "@patternfly/react-core";
 import type React from "react";
 import { FormProvider, useForm } from "react-hook-form";
 import * as yup from "yup";
-import TextInputFormGroup from "../common/components/form/TextInputFormGroup";
 
 interface VCenterCredentialsFormProps
   extends Omit<React.ComponentProps<typeof Form>, "onSubmit"> {

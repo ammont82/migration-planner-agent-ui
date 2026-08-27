@@ -1,26 +1,30 @@
 import { css } from "@emotion/css";
 import {
+  dashboardStyles,
+  MigrationDonutChart,
+} from "@openshift-migration-advisor/shared-components";
+import {
   Card,
   CardBody,
   CardTitle,
   Dropdown,
   DropdownItem,
   DropdownList,
+  EmptyStateVariant,
   Flex,
   FlexItem,
   MenuToggle,
   type MenuToggleElement,
 } from "@patternfly/react-core";
-import { DataProcessorIcon } from "@patternfly/react-icons";
+import { DataProcessorIcon, InboxIcon } from "@patternfly/react-icons";
 import type React from "react";
 import { useMemo, useState } from "react";
+import { AppEmptyState } from "../../../../common/components";
 import {
   type NavigateToVMFilters,
   useChartDrillDown,
 } from "../VirtualMachinesTab/vmNavigation";
 import { parseMemoryTierLabelToRange } from "../VirtualMachinesTab/vmTableShared";
-import { dashboardStyles } from "./dashboardStyles";
-import MigrationDonutChart from "./MigrationDonutChart";
 
 interface CpuAndMemoryOverviewProps {
   cpuTierDistribution?: Record<string, number>;
@@ -196,37 +200,46 @@ export const CpuAndMemoryOverview: React.FC<CpuAndMemoryOverviewProps> = ({
         </Flex>
       </CardTitle>
       <CardBody className={dashboardStyles.cardBodyScrollable}>
-        <MigrationDonutChart
-          data={activeSlices}
-          height={300}
-          width={420}
-          donutThickness={18}
-          titleFontSize={34}
-          legend={legend}
-          title={`${totalVMs} VMs`}
-          subTitle={
-            viewMode === "memoryTiers"
-              ? typeof memoryTotalGB === "number"
-                ? `${memoryTotalGB.toLocaleString()} GB`
+        {activeSlices.length === 0 ? (
+          <AppEmptyState
+            titleText="No data available"
+            icon={InboxIcon}
+            variant={EmptyStateVariant.xs}
+            wrapInBullseye={false}
+          />
+        ) : (
+          <MigrationDonutChart
+            data={activeSlices}
+            height={300}
+            width={420}
+            donutThickness={18}
+            titleFontSize={34}
+            legend={legend}
+            title={`${totalVMs} VMs`}
+            subTitle={
+              viewMode === "memoryTiers"
+                ? typeof memoryTotalGB === "number"
+                  ? `${memoryTotalGB.toLocaleString()} GB`
+                  : undefined
+                : typeof cpuTotalCores === "number"
+                  ? `${cpuTotalCores.toLocaleString()} Cores`
+                  : undefined
+            }
+            subTitleColor="#9a9da0"
+            legendLabelFormatter={({ x, countDisplay }) =>
+              `${x} (${countDisplay})`
+            }
+            tooltipLabelFormatter={({ datum, percent }) =>
+              `${datum.countDisplay}\n${percent.toFixed(1)}%`
+            }
+            onItemClick={
+              !isExportMode && viewMode === "memoryTiers"
+                ? handleMemoryTierClick
                 : undefined
-              : typeof cpuTotalCores === "number"
-                ? `${cpuTotalCores.toLocaleString()} Cores`
-                : undefined
-          }
-          subTitleColor="#9a9da0"
-          legendLabelFormatter={({ x, countDisplay }) =>
-            `${x} (${countDisplay})`
-          }
-          tooltipLabelFormatter={({ datum, percent }) =>
-            `${datum.countDisplay}\n${percent.toFixed(1)}%`
-          }
-          onItemClick={
-            !isExportMode && viewMode === "memoryTiers"
-              ? handleMemoryTierClick
-              : undefined
-          }
-          onTitleClick={!isExportMode ? handleTitleClick : undefined}
-        />
+            }
+            onTitleClick={!isExportMode ? handleTitleClick : undefined}
+          />
+        )}
       </CardBody>
     </Card>
   );
