@@ -1,75 +1,29 @@
 import type { Group } from "@openshift-migration-advisor/agent-sdk";
-import { useInjection } from "@openshift-migration-advisor/ioc";
 import { PageSection } from "@patternfly/react-core";
 import type React from "react";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import type { DefaultApiInterface } from "../../api/agentApi";
-import { Symbols } from "../../main/Symbols";
-import { getVmTags } from "../VirtualMachinesOverview/virtualMachineParsing";
-import type { GroupRow } from "./components/GroupsTable";
+import { useEffect, useState } from "react";
+import {
+  useDeleteGroupMutation,
+  useListGroupsQuery,
+  useUpdateGroupNameMutation,
+} from "../../store/api/groupsEndpoints";
 import { GroupsTable } from "./components/GroupsTable";
 
 import { CreateGroupModal } from "./components/modals/CreateGroupModal";
 import { DeleteGroupModal } from "./components/modals/DeleteGroupModal";
 import { EditGroupNameModal } from "./components/modals/EditGroupNameModal";
-import { fetchAllGroups, invalidateAllGroupsCache } from "./utils/groupList";
-
-const GROUP_VM_PAGE_SIZE = 100;
-
-async function enrichGroup(
-  agentApi: DefaultApiInterface,
-  group: Group,
-): Promise<GroupRow> {
-  const labelSet = new Set<string>();
-
-  const firstPage = await agentApi.getLatestGroup({
-    groupId: group.id,
-    page: 1,
-    pageSize: GROUP_VM_PAGE_SIZE,
-  });
-
-  for (const vm of firstPage.vms) {
-    for (const label of getVmTags(vm)) {
-      labelSet.add(label);
-    }
-  }
-
-  const pageCount = firstPage.pageCount ?? 1;
-  for (let vmPage = 2; vmPage <= pageCount; vmPage++) {
-    const response = await agentApi.getLatestGroup({
-      groupId: group.id,
-      page: vmPage,
-      pageSize: GROUP_VM_PAGE_SIZE,
-    });
-    for (const vm of response.vms) {
-      for (const label of getVmTags(vm)) {
-        labelSet.add(label);
-      }
-    }
-  }
-
-  return {
-    ...group,
-    vmCount: firstPage.total,
-    labels: Array.from(labelSet).sort((a, b) => a.localeCompare(b)),
-  };
-}
 
 export const GroupsPage: React.FC = () => {
-  const agentApi = useInjection<DefaultApiInterface>(Symbols.AgentApi);
-  const [groups, setGroups] = useState<GroupRow[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [total, setTotal] = useState(0);
+  const [updateGroupName] = useUpdateGroupNameMutation();
+  const [deleteGroup] = useDeleteGroupMutation();
+
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(20);
   const [nameFilter, setNameFilter] = useState("");
   const [debouncedNameFilter, setDebouncedNameFilter] = useState("");
-  const [selectedLabels, setSelectedLabels] = useState<string[]>([]);
-  const [availableLabels, setAvailableLabels] = useState<string[]>([]);
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [editingGroup, setEditingGroup] = useState<Group | null>(null);
   const [deletingGroup, setDeletingGroup] = useState<Group | null>(null);
-  const requestIdRef = useRef(0);
 
   // Debounce search input so API calls use debouncedNameFilter, not nameFilter.
   useEffect(() => {
@@ -80,135 +34,41 @@ export const GroupsPage: React.FC = () => {
     return () => clearTimeout(timer);
   }, [nameFilter]);
 
-  const fetchGroups = useCallback(async () => {
-    requestIdRef.current += 1;
-    const requestId = requestIdRef.current;
+  // The server-side page of the list. A single GET; `Group:LIST` invalidation
+  // (create/delete/rename/membership) refetches it, so it can never go stale.
+  const { data: pageData, isLoading: loading } = useListGroupsQuery({
+    byName: debouncedNameFilter || undefined,
+    page,
+    pageSize,
+  });
 
-    try {
-      if (selectedLabels.length > 0) {
-        const allRaw = await fetchAllGroups(agentApi, {
-          byName: debouncedNameFilter || undefined,
-        });
-
-        if (requestId !== requestIdRef.current) {
-          return;
-        }
-
-        const enriched = await Promise.all(
-          allRaw.map((group) => enrichGroup(agentApi, group)),
-        );
-
-        if (requestId !== requestIdRef.current) {
-          return;
-        }
-
-        const labelFiltered = enriched.filter((group) =>
-          selectedLabels.every((label) => group.labels.includes(label)),
-        );
-
-        setGroups(labelFiltered);
-        setTotal(labelFiltered.length);
-        return;
-      }
-
-      const response = await agentApi.listLatestGroups({
-        byName: debouncedNameFilter || undefined,
-        page,
-        pageSize,
-      });
-
-      if (requestId !== requestIdRef.current) {
-        return;
-      }
-
-      const enriched = await Promise.all(
-        (response.groups || []).map((group) => enrichGroup(agentApi, group)),
-      );
-
-      if (requestId !== requestIdRef.current) {
-        return;
-      }
-
-      setGroups(enriched);
-      setTotal(response.total || 0);
-    } catch (err) {
-      console.error("Error fetching groups:", err);
-      if (requestId === requestIdRef.current) {
-        setGroups([]);
-        setTotal(0);
-      }
-    } finally {
-      if (requestId === requestIdRef.current) {
-        setLoading(false);
-      }
-    }
-  }, [agentApi, debouncedNameFilter, page, pageSize, selectedLabels]);
-
-  // Refetch when debounced search, pagination, or label filters change — not on each keystroke.
-  // loading is only true on initial mount; refetches keep the current list visible until new data arrives.
-  useEffect(() => {
-    fetchGroups();
-  }, [fetchGroups]);
-
-  useEffect(() => {
-    const fetchLabels = async () => {
-      try {
-        const response = await agentApi.getLatestVMLabels();
-        setAvailableLabels(response.labels || []);
-      } catch (err) {
-        console.error("Error fetching VM labels:", err);
-        setAvailableLabels([]);
-      }
-    };
-
-    fetchLabels();
-  }, [agentApi]);
-
-  const displayedGroups = useMemo(() => {
-    if (selectedLabels.length === 0) {
-      return groups;
-    }
-    const start = (page - 1) * pageSize;
-    return groups.slice(start, start + pageSize);
-  }, [groups, page, pageSize, selectedLabels.length]);
+  const groups = pageData?.groups ?? [];
+  const total = pageData?.total ?? 0;
 
   const handleUpdateGroupName = async (name: string) => {
     if (!editingGroup) {
       return;
     }
-    await agentApi.updateLatestGroup({
-      groupId: editingGroup.id,
-      updateGroupRequest: { name },
-    });
-    invalidateAllGroupsCache(agentApi);
-    await fetchGroups();
+    await updateGroupName({ groupId: editingGroup.id, name }).unwrap();
   };
 
   const handleDeleteGroup = async () => {
     if (!deletingGroup) {
       return;
     }
-    await agentApi.deleteLatestGroup({ groupId: deletingGroup.id });
-    invalidateAllGroupsCache(agentApi);
-    await fetchGroups();
+    await deleteGroup({ groupId: deletingGroup.id }).unwrap();
   };
 
   return (
     <PageSection hasBodyWrapper={false} isFilled style={{ padding: "24px" }}>
       <GroupsTable
-        groups={displayedGroups}
+        groups={groups}
         loading={loading}
         total={total}
         page={page}
         pageSize={pageSize}
         nameFilter={nameFilter}
-        selectedLabels={selectedLabels}
-        availableLabels={availableLabels}
         onNameFilterChange={setNameFilter}
-        onLabelsFilterChange={(labels) => {
-          setSelectedLabels(labels);
-          setPage(1);
-        }}
         onPageChange={(nextPage, nextPageSize) => {
           setPage(nextPage);
           setPageSize(nextPageSize);
@@ -221,7 +81,6 @@ export const GroupsPage: React.FC = () => {
       <CreateGroupModal
         isOpen={isCreateModalOpen}
         onClose={() => setIsCreateModalOpen(false)}
-        onCreated={fetchGroups}
       />
 
       <EditGroupNameModal

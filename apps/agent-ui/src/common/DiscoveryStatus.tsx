@@ -1,5 +1,4 @@
 import { css } from "@emotion/css";
-import { useInjection } from "@openshift-migration-advisor/ioc";
 import {
   Flex,
   FlexItem,
@@ -14,12 +13,11 @@ import {
 } from "@patternfly/react-icons";
 import type React from "react";
 import { useCallback, useEffect, useState } from "react";
-import type { DefaultApiInterface } from "../api/agentApi";
-import { Symbols } from "../main/Symbols";
+import { getAgentApiClient } from "../api/agentApiClient";
 import { unwrapInventoryPayload } from "../pages/VirtualMachinesOverview/inventoryParsing";
-import { useAgentStatus } from "./AgentStatusContext";
 import { DataSharingAlert } from "./components/DataSharingAlert";
 import { DataSharingModal } from "./components/DataSharingModal";
+import { useAgentStatus } from "./useAgentStatus";
 
 const dangerIconStyle = css`
   color: var(--pf-t--global--icon--color--status--danger--default);
@@ -30,7 +28,7 @@ const successIconStyle = css`
 `;
 
 export const DiscoveryStatus: React.FC = () => {
-  const agentApi = useInjection<DefaultApiInterface>(Symbols.AgentApi);
+  const agentApi = getAgentApiClient();
   const {
     discoverySharingStatus,
     discoverySharingError,

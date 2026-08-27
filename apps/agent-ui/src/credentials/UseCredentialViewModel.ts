@@ -2,16 +2,14 @@ import type {
   CollectorStatus,
   VcenterCredentials,
 } from "@openshift-migration-advisor/agent-sdk";
-import { useInjection } from "@openshift-migration-advisor/ioc";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import type { DefaultApiInterface } from "../api/agentApi";
+import { getAgentApiClient } from "../api/agentApiClient";
 import { getCollectorStatus } from "../api/collectorApi";
 import { newAbortSignal } from "../common/AbortSignal";
 import type { ApiError } from "../common/components/index";
 import { parseApiError } from "../common/parseApiError";
-import { Symbols } from "../main/Symbols";
-import { useCredentials } from "./CredentialsContext";
+import { usePutCredentialsMutation } from "../store/api/credentialsEndpoints";
 
 // Maximum consecutive polling failures before reporting error to user
 const MAX_POLL_FAILURES = 5;
@@ -35,8 +33,8 @@ interface UseLoginViewModelProps {
 export const useLoginViewModel = (
   props?: UseLoginViewModelProps,
 ): LoginViewModelInterface => {
-  const { updateCredential } = useCredentials();
-  const agentApi = useInjection<DefaultApiInterface>(Symbols.AgentApi);
+  const [putCredentials] = usePutCredentialsMutation();
+  const agentApi = getAgentApiClient();
   const navigate = useNavigate();
   const refetchAgentStatus = props?.refetchAgentStatus;
   const [version, setVersion] = useState<string | undefined>(undefined);
@@ -170,11 +168,13 @@ export const useLoginViewModel = (
           }
         }
 
-        await updateCredential({
-          url: credentials.url,
-          username: credentials.username,
-          password: credentials.password,
-        });
+        await putCredentials({
+          vcenterCredentials: {
+            url: credentials.url,
+            username: credentials.username,
+            password: credentials.password,
+          },
+        }).unwrap();
 
         const signal = newAbortSignal(
           "The server didn't respond in a timely fashion.",
@@ -203,7 +203,7 @@ export const useLoginViewModel = (
         console.error("Error during collection start:", err);
       }
     },
-    [agentApi, updateCredential, refetchAgentStatus],
+    [agentApi, putCredentials, refetchAgentStatus],
   );
 
   const onCancel = useCallback(async () => {

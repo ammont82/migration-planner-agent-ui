@@ -1,4 +1,5 @@
 import { css } from "@emotion/css";
+import type { CredentialStatus } from "@openshift-migration-advisor/agent-sdk";
 import {
   DescriptionList,
   DescriptionListDescription,
@@ -26,11 +27,34 @@ import {
 import type React from "react";
 import { useState } from "react";
 import {
-  type CredentialStatusType,
-  useCredentials,
-} from "./CredentialsContext";
+  useDeleteCredentialsMutation,
+  useGetCredentialsQuery,
+  usePutCredentialsMutation,
+} from "../store/api/credentialsEndpoints";
+import { getSdkErrorMessage } from "../store/baseQuery";
+import { useCredentialsModal } from "./CredentialsModalController";
 import { RemoveVCenterConnectionModal } from "./RemoveVCenterConnectionModal";
 import { VCenterCredentialsModal } from "./VCenterCredentialsModal";
+
+type CredentialStatusType =
+  | "error"
+  | "loading"
+  | "connected"
+  | "removed"
+  | "editing";
+
+function deriveCredentialStatusType(
+  isEditModalOpen: boolean,
+  hasError: boolean,
+  isBusy: boolean,
+  credentialStatus: CredentialStatus | null,
+): CredentialStatusType {
+  if (isEditModalOpen) return "editing";
+  if (hasError) return "error";
+  if (isBusy) return "loading";
+  if (credentialStatus?.valid) return "connected";
+  return "removed";
+}
 
 const connectedLabelStyles = css`
   margin-right: var(--pf-t--global--spacer--xs);
@@ -108,26 +132,45 @@ const VCenterCredentialsDropdownMenu: React.FC = () => {
   const [isDropdownMenuOpen, setIsDropdownMenuOpen] = useState(false);
   const [isRemoveModalOpen, setIsRemoveModalOpen] = useState(false);
 
+  const { data: credentialStatus = null, isLoading: isLoadingCredentials } =
+    useGetCredentialsQuery();
+  const [
+    putCredentials,
+    { isLoading: isUpdating, error: updateError, reset: resetUpdate },
+  ] = usePutCredentialsMutation();
+  const [
+    deleteCredentials,
+    { isLoading: isRemoving, error: deleteError, reset: resetDelete },
+  ] = useDeleteCredentialsMutation();
   const {
-    credentialStatus,
-    credentialStatusType,
-    isLoading,
-    error,
+    isCredentialsModalOpen: isEditModalOpen,
+    openCredentialsModal: openEditModal,
+    closeCredentialModal: closeEditModal,
+  } = useCredentialsModal();
+
+  const updateErrorMessage = updateError
+    ? getSdkErrorMessage(updateError, "Failed to update credentials.")
+    : null;
+  const removeErrorMessage = deleteError
+    ? getSdkErrorMessage(deleteError, "Failed to disconnect.")
+    : null;
+  const error = updateErrorMessage ?? removeErrorMessage;
+  const isBusy = isLoadingCredentials || isUpdating || isRemoving;
+  const credentialStatusType = deriveCredentialStatusType(
     isEditModalOpen,
-    openEditModal,
-    closeEditModal,
-    clearError,
-    updateCredential,
-    disconnectCredential,
-  } = useCredentials();
+    error !== null,
+    isBusy,
+    credentialStatus,
+  );
 
   const openEditVCenterCredentialsModal = () => {
+    resetUpdate();
     setIsDropdownMenuOpen(false);
     openEditModal();
   };
 
   const openRemoveVCenterConnectionModal = () => {
-    clearError();
+    resetDelete();
     setIsDropdownMenuOpen(false);
     setIsRemoveModalOpen(true);
   };
@@ -206,14 +249,15 @@ const VCenterCredentialsDropdownMenu: React.FC = () => {
       <VCenterCredentialsModal
         isOpen={isEditModalOpen}
         credentialStatus={credentialStatus}
-        isUpdating={isLoading}
-        error={error || ""}
+        isUpdating={isUpdating}
+        error={updateErrorMessage || ""}
         onClose={() => {
           const triggerSuccessCallback = false;
           closeEditModal(triggerSuccessCallback);
         }}
         onUpdate={(credentials) => {
-          updateCredential(credentials)
+          putCredentials({ vcenterCredentials: credentials })
+            .unwrap()
             .then(() => {
               const triggerSuccessCallback = true;
               closeEditModal(triggerSuccessCallback);
@@ -223,11 +267,12 @@ const VCenterCredentialsDropdownMenu: React.FC = () => {
       />
       <RemoveVCenterConnectionModal
         isOpen={isRemoveModalOpen}
-        isRemoving={isLoading}
-        error={error || ""}
+        isRemoving={isRemoving}
+        error={removeErrorMessage || ""}
         onClose={() => setIsRemoveModalOpen(false)}
         onConfirm={() => {
-          disconnectCredential()
+          deleteCredentials()
+            .unwrap()
             .then(() => {
               setIsRemoveModalOpen(false);
             })

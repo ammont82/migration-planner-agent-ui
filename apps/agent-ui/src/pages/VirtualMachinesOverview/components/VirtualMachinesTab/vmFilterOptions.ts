@@ -1,6 +1,6 @@
 import type { Group } from "@openshift-migration-advisor/agent-sdk";
 import type { DefaultApiInterface } from "../../../../api/agentApi";
-import { fetchAllGroups } from "../../../Groups/utils/groupList";
+import { fetchAllGroupsPages } from "../../../Groups/utils/groupList";
 import type { VMTableFilterOptions } from "./vmTableTypes";
 
 const EMPTY_VM_TABLE_FILTER_OPTIONS: VMTableFilterOptions = {
@@ -12,12 +12,6 @@ const EMPTY_VM_TABLE_FILTER_OPTIONS: VMTableFilterOptions = {
   groups: [],
   applications: [],
 };
-
-export const FILTER_OPTIONS_REFRESH_TTL_MS = 60_000;
-
-export type RefreshFilterOptionsFn = (options?: {
-  force?: boolean;
-}) => void | Promise<void>;
 
 /**
  * Merges group names from live VM membership into filter options.
@@ -43,7 +37,7 @@ export async function fetchVmTableFilterOptions(
   const [response, labelsResponse, groups] = await Promise.all([
     agentApi.getLatestVMFilterOptions(),
     agentApi.getLatestVMLabels().catch(() => ({ labels: [] as string[] })),
-    fetchAllGroups(agentApi).catch((err) => {
+    fetchAllGroupsPages(agentApi).catch((err) => {
       console.error("Error fetching groups for filter options:", err);
       return [] as Group[];
     }),
@@ -62,27 +56,5 @@ export async function fetchVmTableFilterOptions(
     vmLabels: labelsResponse.labels || [],
     groups: groupNames,
     applications: response.applications || [],
-  };
-}
-
-/** Returns a throttled refresh callback; pass `{ force: true }` after group mutations. */
-export function createRefreshVmTableFilterOptions(
-  agentApi: DefaultApiInterface,
-  setOptions: (options: VMTableFilterOptions) => void,
-): RefreshFilterOptionsFn {
-  let lastRefreshAt = 0;
-
-  return async ({ force = false } = {}) => {
-    const now = Date.now();
-    if (!force && now - lastRefreshAt < FILTER_OPTIONS_REFRESH_TTL_MS) {
-      return;
-    }
-
-    try {
-      setOptions(await fetchVmTableFilterOptions(agentApi));
-      lastRefreshAt = now;
-    } catch (err) {
-      console.error("Error refreshing filter options:", err);
-    }
   };
 }

@@ -1,5 +1,3 @@
-import type { Group } from "@openshift-migration-advisor/agent-sdk";
-import { useInjection } from "@openshift-migration-advisor/ioc";
 import {
   Button,
   Content,
@@ -20,20 +18,19 @@ import {
 import { DesktopIcon } from "@patternfly/react-icons";
 import type React from "react";
 import { useEffect, useMemo, useState } from "react";
-import type { DefaultApiInterface } from "../../../../api/agentApi";
 import { AppEmptyState } from "../../../../common/components";
-import { Symbols } from "../../../../main/Symbols";
-import { addVmsToGroupFilter } from "../../utils/groupFilters";
 import {
-  fetchAllGroups,
-  invalidateAllGroupsCache,
-} from "../../utils/groupList";
+  useChangeGroupMembershipMutation,
+  useGetAllGroupsQuery,
+} from "../../../../store/api/groupsEndpoints";
+import { getSdkErrorMessage } from "../../../../store/baseQuery";
+import { addVmsToGroupFilter } from "../../utils/groupFilters";
 
 interface AddToGroupModalProps {
   isOpen: boolean;
   vmIds: string[];
   onClose: () => void;
-  onUpdated: () => void;
+  onUpdated?: () => void;
 }
 
 export const AddToGroupModal: React.FC<AddToGroupModalProps> = ({
@@ -42,12 +39,15 @@ export const AddToGroupModal: React.FC<AddToGroupModalProps> = ({
   onClose,
   onUpdated,
 }) => {
-  const agentApi = useInjection<DefaultApiInterface>(Symbols.AgentApi);
-  const [groups, setGroups] = useState<Group[]>([]);
-  const [loading, setLoading] = useState(false);
+  const [changeGroupMembership, { isLoading: isSaving }] =
+    useChangeGroupMembershipMutation();
+  const {
+    data: groups = [],
+    isFetching: loading,
+    isError: loadFailed,
+  } = useGetAllGroupsQuery(undefined, { skip: !isOpen });
   const [selectedGroupId, setSelectedGroupId] = useState<string>("");
   const [isGroupSelectOpen, setIsGroupSelectOpen] = useState(false);
-  const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const selectedGroup = useMemo(
@@ -55,39 +55,29 @@ export const AddToGroupModal: React.FC<AddToGroupModalProps> = ({
     [groups, selectedGroupId],
   );
 
+  const displayError = error ?? (loadFailed ? "Failed to load groups." : null);
+
   const vmCountLabel =
     vmIds.length === 1
       ? "1 selected virtual machine"
       : `${vmIds.length} selected virtual machines`;
 
+  // Reset transient selection state whenever the modal opens.
   useEffect(() => {
     if (!isOpen) {
       return;
     }
-
     setSelectedGroupId("");
     setIsGroupSelectOpen(false);
     setError(null);
+  }, [isOpen]);
 
-    const fetchGroups = async () => {
-      setLoading(true);
-      try {
-        const loadedGroups = await fetchAllGroups(agentApi);
-        setGroups(loadedGroups);
-        if (loadedGroups.length === 1) {
-          setSelectedGroupId(loadedGroups[0].id);
-        }
-      } catch (err) {
-        console.error("Error fetching groups:", err);
-        setGroups([]);
-        setError("Failed to load groups.");
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchGroups();
-  }, [isOpen, agentApi]);
+  // Auto-select when there is exactly one group to choose from.
+  useEffect(() => {
+    if (isOpen && groups.length === 1) {
+      setSelectedGroupId(groups[0].id);
+    }
+  }, [isOpen, groups]);
 
   const handleGroupSelect = (
     _event: React.MouseEvent<Element, MouseEvent> | undefined,
@@ -105,24 +95,16 @@ export const AddToGroupModal: React.FC<AddToGroupModalProps> = ({
       return;
     }
 
-    setIsSaving(true);
     setError(null);
     try {
-      await agentApi.updateLatestGroup({
+      await changeGroupMembership({
         groupId: selectedGroup.id,
-        updateGroupRequest: {
-          filter: addVmsToGroupFilter(selectedGroup.filter, vmIds),
-        },
-      });
-      invalidateAllGroupsCache(agentApi);
-      onUpdated();
+        filter: addVmsToGroupFilter(selectedGroup.filter, vmIds),
+      }).unwrap();
+      onUpdated?.();
       onClose();
     } catch (err) {
-      setError(
-        err instanceof Error ? err.message : "Failed to add VMs to group.",
-      );
-    } finally {
-      setIsSaving(false);
+      setError(getSdkErrorMessage(err, "Failed to add VMs to group."));
     }
   };
 
@@ -185,7 +167,7 @@ export const AddToGroupModal: React.FC<AddToGroupModalProps> = ({
           </Form>
         )}
 
-        {error && (
+        {displayError && (
           <Content
             component="p"
             style={{
@@ -194,7 +176,7 @@ export const AddToGroupModal: React.FC<AddToGroupModalProps> = ({
               marginTop: "16px",
             }}
           >
-            {error}
+            {displayError}
           </Content>
         )}
       </ModalBody>

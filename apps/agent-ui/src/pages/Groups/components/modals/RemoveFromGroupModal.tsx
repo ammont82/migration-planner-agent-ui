@@ -1,4 +1,3 @@
-import { useInjection } from "@openshift-migration-advisor/ioc";
 import {
   Button,
   Content,
@@ -18,15 +17,16 @@ import {
 } from "@patternfly/react-core";
 import { DesktopIcon } from "@patternfly/react-icons";
 import type React from "react";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import type { DefaultApiInterface } from "../../../../api/agentApi";
+import { getAgentApiClient } from "../../../../api/agentApiClient";
 import { AppEmptyState } from "../../../../common/components";
-import { Symbols } from "../../../../main/Symbols";
-import { buildGroupFilterAfterRemovingMembers } from "../../utils/groupFilters";
 import {
-  fetchAllGroups,
-  invalidateAllGroupsCache,
-} from "../../utils/groupList";
+  useChangeGroupMembershipMutation,
+  useGetAllGroupsQuery,
+} from "../../../../store/api/groupsEndpoints";
+import { getSdkErrorMessage } from "../../../../store/baseQuery";
+import { buildGroupFilterAfterRemovingMembers } from "../../utils/groupFilters";
 
 interface GroupOption {
   id: string;
@@ -90,13 +90,35 @@ export const RemoveFromGroupModal: React.FC<RemoveFromGroupModalProps> = ({
   onClose,
   onUpdated,
 }) => {
-  const agentApi = useInjection<DefaultApiInterface>(Symbols.AgentApi);
-  const [groupOptions, setGroupOptions] = useState<GroupOption[]>([]);
-  const [loading, setLoading] = useState(false);
+  const agentApi = getAgentApiClient();
+  const [changeGroupMembership, { isLoading: isSaving }] =
+    useChangeGroupMembershipMutation();
+  const {
+    data: allGroups = [],
+    isFetching: loadingGroups,
+    isError: loadFailed,
+  } = useGetAllGroupsQuery(undefined, {
+    skip: !isOpen || !!fixedGroupId,
+  });
   const [selectedGroupId, setSelectedGroupId] = useState<string>("");
   const [isGroupSelectOpen, setIsGroupSelectOpen] = useState(false);
-  const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  // A fixed group (from the group detail page) skips the picker; otherwise the
+  // options are the caller's group names matched against the full group list.
+  const groupOptions = useMemo<GroupOption[]>(() => {
+    if (fixedGroupId) {
+      return [{ id: fixedGroupId, name: fixedGroupName ?? fixedGroupId }];
+    }
+    const nameSet = new Set(groupNames);
+    return allGroups
+      .filter((group) => nameSet.has(group.name))
+      .map((group) => ({ id: group.id, name: group.name }));
+  }, [fixedGroupId, fixedGroupName, groupNames, allGroups]);
+
+  const loading = !fixedGroupId && loadingGroups;
+  const displayError =
+    error ?? (loadFailed && !fixedGroupId ? "Failed to load groups." : null);
 
   const resolvedGroupId = fixedGroupId || selectedGroupId;
   const selectedGroup = useMemo(
@@ -105,48 +127,21 @@ export const RemoveFromGroupModal: React.FC<RemoveFromGroupModalProps> = ({
   );
   const needsGroupPicker = !fixedGroupId && groupOptions.length > 1;
 
-  const loadGroups = useCallback(async () => {
-    setLoading(true);
-    setError(null);
-    try {
-      if (fixedGroupId) {
-        setGroupOptions([
-          { id: fixedGroupId, name: fixedGroupName ?? fixedGroupId },
-        ]);
-        setSelectedGroupId(fixedGroupId);
-        return;
-      }
-
-      const allGroups = await fetchAllGroups(agentApi);
-      const nameSet = new Set(groupNames);
-      const matching = allGroups
-        .filter((group) => nameSet.has(group.name))
-        .map((group) => ({ id: group.id, name: group.name }));
-
-      setGroupOptions(matching);
-      if (matching.length === 1) {
-        setSelectedGroupId(matching[0].id);
-      } else {
-        setSelectedGroupId("");
-      }
-    } catch (err) {
-      console.error("Error loading groups:", err);
-      setGroupOptions([]);
-      setError("Failed to load groups.");
-    } finally {
-      setLoading(false);
-    }
-  }, [agentApi, fixedGroupId, fixedGroupName, groupNames]);
-
+  // Reset the picker and auto-select when the modal opens or the options change.
   useEffect(() => {
     if (!isOpen) {
       return;
     }
-
     setIsGroupSelectOpen(false);
     setError(null);
-    void loadGroups();
-  }, [isOpen, loadGroups]);
+    if (fixedGroupId) {
+      setSelectedGroupId(fixedGroupId);
+    } else if (groupOptions.length === 1) {
+      setSelectedGroupId(groupOptions[0].id);
+    } else {
+      setSelectedGroupId("");
+    }
+  }, [isOpen, fixedGroupId, groupOptions]);
 
   const handleGroupSelect = (
     _event: React.MouseEvent<Element, MouseEvent> | undefined,
@@ -168,7 +163,6 @@ export const RemoveFromGroupModal: React.FC<RemoveFromGroupModalProps> = ({
       return;
     }
 
-    setIsSaving(true);
     setError(null);
     try {
       const currentMemberIds = await fetchAllGroupMemberIds(
@@ -191,23 +185,16 @@ export const RemoveFromGroupModal: React.FC<RemoveFromGroupModalProps> = ({
         vmIds,
       );
 
-      await agentApi.updateLatestGroup({
+      await changeGroupMembership({
         groupId: resolvedGroupId,
-        updateGroupRequest: {
-          filter: updatedFilter,
-        },
-      });
+        filter: updatedFilter,
+      }).unwrap();
 
-      invalidateAllGroupsCache(agentApi);
       onUpdated();
       onClose();
     } catch (err) {
       console.error("Failed to remove VMs from group:", err);
-      setError(
-        err instanceof Error ? err.message : "Failed to remove VMs from group.",
-      );
-    } finally {
-      setIsSaving(false);
+      setError(getSdkErrorMessage(err, "Failed to remove VMs from group."));
     }
   };
 
@@ -275,7 +262,7 @@ export const RemoveFromGroupModal: React.FC<RemoveFromGroupModalProps> = ({
             </Form>
           )
         )}
-        {error && (
+        {displayError && (
           <Content
             component="p"
             style={{
@@ -284,7 +271,7 @@ export const RemoveFromGroupModal: React.FC<RemoveFromGroupModalProps> = ({
               marginTop: "16px",
             }}
           >
-            {error}
+            {displayError}
           </Content>
         )}
       </ModalBody>

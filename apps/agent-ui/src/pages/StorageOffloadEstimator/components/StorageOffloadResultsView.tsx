@@ -34,7 +34,8 @@ import type React from "react";
 import { useCallback, useMemo, useState } from "react";
 import { AppEmptyState } from "../../../common/components";
 import useLocalStorage from "../../../common/hooks/useLocalStorage";
-import { useCapability } from "../../../credentials/CredentialsContext";
+import { useCredentialsModal } from "../../../credentials/CredentialsModalController";
+import { useCapability } from "../../../credentials/useCapability";
 import type {
   ForecasterStatus,
   ForecastRun,
@@ -113,8 +114,9 @@ export const StorageOffloadResultsView: React.FC<
     shouldShowTooltip,
     shouldRequestCredentials,
     errorTooltipContent,
-    openEditModal,
+    isPending,
   } = useCapability("forecaster");
+  const { openCredentialsModal } = useCredentialsModal();
 
   const [filter, setFilter] = useState("");
   const [drawerPair, setDrawerPair] = useState<SelectedPair | null>(null);
@@ -356,9 +358,10 @@ export const StorageOffloadResultsView: React.FC<
                       ) : (
                         <Button
                           variant="primary"
+                          isDisabled={isPending}
                           onClick={() => {
                             if (shouldRequestCredentials) {
-                              openEditModal(() => onAddPair());
+                              openCredentialsModal(() => onAddPair());
                             } else {
                               onAddPair();
                             }

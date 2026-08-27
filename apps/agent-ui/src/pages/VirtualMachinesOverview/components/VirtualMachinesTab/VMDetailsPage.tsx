@@ -1,10 +1,4 @@
-import type {
-  ApplicationOverview,
-  VirtualMachineDetail,
-  VirtualMachineIssue,
-  VmUtilizationDetails,
-} from "@openshift-migration-advisor/agent-sdk";
-import { useInjection } from "@openshift-migration-advisor/ioc";
+import type { VirtualMachineIssue } from "@openshift-migration-advisor/agent-sdk";
 import {
   Alert,
   Breadcrumb,
@@ -45,11 +39,12 @@ import {
 } from "@patternfly/react-icons";
 import { Table, Tbody, Td, Th, Thead, Tr } from "@patternfly/react-table";
 import type React from "react";
-import { useEffect, useRef, useState } from "react";
-import type { DefaultApiInterface } from "../../../../api/agentApi";
-import { getLatestCollectionId } from "../../../../api/collectionApi";
-import { useReportsContext } from "../../../../common/report/ReportsContext";
-import { Symbols } from "../../../../main/Symbols";
+import { useEffect, useMemo, useRef, useState } from "react";
+import {
+  useGetApplicationsQuery,
+  useGetVMDetailQuery,
+} from "../../../../store/api/vmsEndpoints";
+import { getSdkErrorMessage } from "../../../../store/baseQuery";
 import { getApplicationsForVm } from "../ApplicationsTab/applicationsApi";
 import { VMApplicationsCard } from "./VMApplicationsCard";
 import { VMProcessesCard } from "./VMProcessesCard";
@@ -62,16 +57,11 @@ const formatMemorySize = (sizeInMB: number): string => {
   return `${sizeInGB.toFixed(sizeInGB % 1 === 0 ? 0 : 2)} GB`;
 };
 
-interface VirtualMachineDetailWithUtilization extends VirtualMachineDetail {
-  utilization?: VmUtilizationDetails;
-}
-
 interface VMDetailsPageProps {
   vmId: string;
   onBack: () => void;
   scrollToSection?: string | null;
   onScrollToSectionComplete?: () => void;
-  collectionRefreshKey?: number;
 }
 
 export const VMDetailsPage: React.FC<VMDetailsPageProps> = ({
@@ -80,13 +70,33 @@ export const VMDetailsPage: React.FC<VMDetailsPageProps> = ({
   scrollToSection,
   onScrollToSectionComplete,
 }) => {
-  const agentApi = useInjection<DefaultApiInterface>(Symbols.AgentApi);
-  const { latestCollectionId } = useReportsContext();
-  const [vm, setVm] = useState<VirtualMachineDetailWithUtilization | null>(
-    null,
+  // VM detail (+ utilization) and the collection's applications are two RTK
+  // Query cache entries. The applications list is fetched whole and filtered to
+  // this VM client-side, matching the former imperative behaviour.
+  const {
+    data: vm,
+    isLoading: loading,
+    error: vmError,
+  } = useGetVMDetailQuery(vmId);
+
+  const {
+    data: allApplications = [],
+    isLoading: applicationsLoading,
+    error: applicationsQueryError,
+  } = useGetApplicationsQuery({});
+
+  const vmApplications = useMemo(
+    () => getApplicationsForVm(allApplications, vmId),
+    [allApplications, vmId],
   );
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+
+  const error = vmError
+    ? getSdkErrorMessage(vmError, "Failed to load VM details")
+    : null;
+  const applicationsError = applicationsQueryError
+    ? getSdkErrorMessage(applicationsQueryError, "Failed to load applications.")
+    : null;
+
   const [expandedCategories, setExpandedCategories] = useState<
     Record<string, boolean>
   >({
@@ -97,79 +107,7 @@ export const VMDetailsPage: React.FC<VMDetailsPageProps> = ({
     Information: false,
     Other: false,
   });
-  const [vmApplications, setVmApplications] = useState<ApplicationOverview[]>(
-    [],
-  );
-  const [applicationsLoading, setApplicationsLoading] = useState(true);
-  const [applicationsError, setApplicationsError] = useState<string | null>(
-    null,
-  );
   const applicationsSectionRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    const fetchVMDetails = async () => {
-      try {
-        setLoading(true);
-        setError(null);
-        const vmData = await agentApi.getLatestVirtualMachine({ vmId });
-        let utilization: VmUtilizationDetails | undefined;
-        try {
-          utilization = await agentApi.getLatestVMUtilization({ vmId });
-        } catch (utilizationError) {
-          console.warn("Error fetching VM utilization:", utilizationError);
-        }
-        setVm({ ...vmData, utilization });
-      } catch (err) {
-        const errorMessage =
-          err instanceof Error ? err.message : "Failed to load VM details";
-        setError(errorMessage);
-        console.error("Error fetching VM details:", err);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchVMDetails();
-  }, [vmId, agentApi]);
-
-  useEffect(() => {
-    let cancelled = false;
-
-    const fetchApplications = async () => {
-      try {
-        setApplicationsLoading(true);
-        setApplicationsError(null);
-        const collectionId =
-          latestCollectionId ?? (await getLatestCollectionId(agentApi));
-        const response = collectionId
-          ? await agentApi.listApplications({ id: collectionId })
-          : { applications: [] };
-        if (!cancelled) {
-          setVmApplications(
-            getApplicationsForVm(response.applications ?? [], vmId),
-          );
-        }
-      } catch (err) {
-        console.warn("Error fetching VM applications:", err);
-        if (!cancelled) {
-          setVmApplications([]);
-          setApplicationsError(
-            err instanceof Error ? err.message : "Failed to load applications.",
-          );
-        }
-      } finally {
-        if (!cancelled) {
-          setApplicationsLoading(false);
-        }
-      }
-    };
-
-    fetchApplications();
-
-    return () => {
-      cancelled = true;
-    };
-  }, [vmId, agentApi, latestCollectionId]);
 
   useEffect(() => {
     if (scrollToSection !== "applications" || loading || applicationsLoading) {

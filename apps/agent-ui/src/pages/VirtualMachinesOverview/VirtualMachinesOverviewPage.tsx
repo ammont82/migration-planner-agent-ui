@@ -1,9 +1,3 @@
-import type {
-  RightsizingClusterUtilization,
-  VirtualMachine,
-} from "@openshift-migration-advisor/agent-sdk";
-import { ResponseError } from "@openshift-migration-advisor/agent-sdk";
-import { useInjection } from "@openshift-migration-advisor/ioc";
 import {
   Alert,
   Content,
@@ -21,15 +15,20 @@ import {
 } from "@patternfly/react-core";
 import { InboxIcon } from "@patternfly/react-icons";
 import type React from "react";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "react-router-dom";
-import type { DefaultApiInterface } from "../../api/agentApi";
-import { getAgentApiBasePath } from "../../api/agentApiConfig";
-import { getLatestCollectionId } from "../../api/collectionApi";
+import { getAgentApiClient } from "../../api/agentApiClient";
 import { AppEmptyState } from "../../common/components/index";
 import { DiscoveryStatus } from "../../common/DiscoveryStatus";
-import { useReportsContext } from "../../common/report/ReportsContext";
-import { Symbols } from "../../main/Symbols";
+import { useListCollectionsQuery } from "../../store/api/comparisonEndpoints";
+import {
+  useGetApplicationsQuery,
+  useGetClusterUtilizationQuery,
+  useGetInventoryQuery,
+  useGetVMFilterOptionsQuery,
+  useGetVMsQuery,
+} from "../../store/api/vmsEndpoints";
+import { getSdkErrorMessage } from "../../store/baseQuery";
 import { buildClusterViewModel, type ClusterOption } from "./clusterView";
 import { ApplicationsView } from "./components/ApplicationsTab/ApplicationsView";
 import { Dashboard } from "./components/Dashboard/Dashboard";
@@ -37,7 +36,6 @@ import { ExportCsvModal } from "./components/Export/ExportCsvModal";
 import { useExportInventory } from "./components/Export/useExportInventory";
 import { VirtualMachinesView } from "./components/VirtualMachinesTab/VirtualMachinesView";
 import { VMUtilizationMetrics } from "./components/VirtualMachinesTab/VMUtilizationMetrics";
-import { createRefreshVmTableFilterOptions } from "./components/VirtualMachinesTab/vmFilterOptions";
 import {
   filtersToByExpression,
   filtersToSearchParams,
@@ -46,12 +44,9 @@ import {
   type VMFilters,
   withDefaultReportInclusion,
 } from "./components/VirtualMachinesTab/vmFilters";
+import type { VMTableFilterOptions } from "./components/VirtualMachinesTab/vmTableTypes";
 import { Header } from "./Header";
-import {
-  fetchInventoryFromApi,
-  getInventoryAggregateView,
-  type InventoryPayload,
-} from "./inventoryParsing";
+import { getInventoryAggregateView } from "./inventoryParsing";
 import { ReportPageHeader } from "./ReportPageHeader";
 import {
   buildApplicationsTabUrl,
@@ -62,62 +57,31 @@ import {
   REPORT_TAB,
   resolveReportTab,
 } from "./reportTabNavigation";
-import { useApplicationsData } from "./useApplicationsData";
-import { useMigrationInventoryRefresh } from "./useMigrationInventoryRefresh";
 import { normalizeVirtualMachines } from "./virtualMachineParsing";
 
+const EMPTY_FILTER_OPTIONS: VMTableFilterOptions = {
+  clusters: [],
+  datacenters: [],
+  concernLabels: [],
+  concernCategories: [],
+  vmLabels: [],
+  groups: [],
+  applications: [],
+};
+
 export const ReportContainer: React.FC = () => {
-  const agentApi = useInjection<DefaultApiInterface>(Symbols.AgentApi);
-  const { hasCollectionData } = useReportsContext();
+  const agentApi = getAgentApiClient();
+  const { data: collections } = useListCollectionsQuery();
+  const hasCollectionData = (collections?.length ?? 0) > 0;
+  const newestCollectionId = collections?.[0]?.id;
   const [searchParams, setSearchParams] = useSearchParams();
-  const [inventory, setInventory] = useState<InventoryPayload | null>(null);
-  const [vmsList, setVmsList] = useState<VirtualMachine[]>([]);
-  const [vmsLoading, setVmsLoading] = useState(false);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
   const [selectedClusterId, setSelectedClusterId] = useState<string>("all");
   const [isClusterSelectOpen, setIsClusterSelectOpen] = useState(false);
-  const [utilizationMetrics, setUtilizationMetrics] =
-    useState<RightsizingClusterUtilization | null>(null);
-  const [reportDataRefreshKey, setReportDataRefreshKey] = useState(0);
 
-  // Separate request IDs for the initial/effect-driven fetch vs. polling refresh
-  // so that concurrent calls from different sources don't discard each other's
-  // responses.
-  const vmsRequestIdRef = useRef(0);
-  const vmsRefreshIdRef = useRef(0);
-
-  // VM pagination state
-  const [vmsTotalCount, setVmsTotalCount] = useState(0);
+  // VM pagination state (client-only; the query keys on these values)
   const [vmsPage, setVmsPage] = useState(1);
   const [vmsPageSize, setVmsPageSize] = useState(20);
   const [vmsSortFields, setVmsSortFields] = useState<string[]>([]);
-
-  // Store all available filter options (fetched once for filter UI)
-  const [availableFilterOptions, setAvailableFilterOptions] = useState<{
-    clusters: string[];
-    datacenters: string[];
-    concernLabels: string[];
-    concernCategories: string[];
-    vmLabels: string[];
-    groups: string[];
-    applications: string[];
-  }>({
-    clusters: [],
-    datacenters: [],
-    concernLabels: [],
-    concernCategories: [],
-    vmLabels: [],
-    groups: [],
-    applications: [],
-  });
-  const [filterOptionsFetched, setFilterOptionsFetched] = useState(false);
-
-  const refreshFilterOptions = useMemo(
-    () =>
-      createRefreshVmTableFilterOptions(agentApi, setAvailableFilterOptions),
-    [agentApi],
-  );
 
   const initialVMFilters = useMemo(
     () => searchParamsToFilters(searchParams),
@@ -153,13 +117,6 @@ export const ReportContainer: React.FC = () => {
     resolveReportTab(searchParams, hasActiveFilters(initialVMFilters)),
   );
 
-  const {
-    applications: applicationsList,
-    loading: applicationsLoading,
-    error: applicationsError,
-    refreshApplications,
-  } = useApplicationsData(agentApi, activeTab === REPORT_TAB.applications);
-
   useEffect(() => {
     const nextTab = resolveReportTab(
       searchParams,
@@ -170,217 +127,75 @@ export const ReportContainer: React.FC = () => {
     }
   }, [searchParams, activeTab]);
 
-  const fetchInventory =
-    useCallback(async (): Promise<InventoryPayload | null> => {
-      const basePath = getAgentApiBasePath(agentApi);
-      return fetchInventoryFromApi(basePath);
-    }, [agentApi]);
+  // --- Server data (RTK Query) ---------------------------------------------
+  // The assessment inventory drives the dashboard, the header counts and the
+  // gating of the whole page (loading / error / no-inventory states).
+  const {
+    data: inventory,
+    isLoading: inventoryLoading,
+    error: inventoryError,
+  } = useGetInventoryQuery();
+
+  const byExpression = useMemo(
+    () => filtersToByExpression(withDefaultReportInclusion(initialVMFilters)),
+    [initialVMFilters],
+  );
+
+  const { data: vmsData, isFetching: vmsFetching } = useGetVMsQuery(
+    {
+      byExpression,
+      sort: vmsSortFields,
+      page: vmsPage,
+      pageSize: vmsPageSize,
+    },
+    { skip: activeTab !== REPORT_TAB.vms },
+  );
+  const vmsList = useMemo(
+    () => normalizeVirtualMachines(vmsData?.virtualMachines),
+    [vmsData],
+  );
+  const vmsTotalCount = vmsData?.total ?? 0;
+
+  const { data: filterOptionsData } = useGetVMFilterOptionsQuery(undefined, {
+    skip: activeTab !== REPORT_TAB.vms || !inventory,
+  });
+  const availableFilterOptions = filterOptionsData ?? EMPTY_FILTER_OPTIONS;
 
   const {
-    revision: inventoryRevision,
-    refreshInventory,
-    reloadInventory,
-  } = useMigrationInventoryRefresh({
-    agentApi,
-    setInventory,
-    setVmsList,
-  });
+    data: applicationsData,
+    isFetching: applicationsFetching,
+    error: applicationsQueryError,
+  } = useGetApplicationsQuery(
+    {},
+    { skip: activeTab !== REPORT_TAB.applications },
+  );
+  const applicationsList = applicationsData ?? [];
+  const applicationsError = applicationsQueryError
+    ? getSdkErrorMessage(applicationsQueryError, "Failed to load applications.")
+    : null;
 
-  // Fetch inventory only (agent status comes from context)
+  // Cluster usage statistics — only fetched when a specific cluster is
+  // selected. The query keys on clusterId, so switching clusters refetches and
+  // switching back to "all" (skip) hides the metrics.
+  const { data: utilizationMetrics } = useGetClusterUtilizationQuery(
+    selectedClusterId,
+    { skip: selectedClusterId === "all" },
+  );
+
+  // A completed report invalidates the inventory/VM caches through the
+  // collection-completion listener (see
+  // `store/listeners/vmsInvalidationListeners.ts`), so the queries above refetch
+  // on their own. The page only needs to reset its client-side pagination back
+  // to the first page when a newer collection replaces the current one.
+  const [pagedCollectionId, setPagedCollectionId] = useState<
+    string | undefined
+  >(newestCollectionId);
   useEffect(() => {
-    const fetchData = async () => {
-      try {
-        setLoading(true);
-        const nextInventory = await fetchInventory();
-        setInventory(nextInventory);
-      } catch (err) {
-        console.error("Error fetching inventory:", err);
-
-        if (err instanceof ResponseError && err.response?.status === 404) {
-          setInventory(null);
-          setError(null);
-        } else {
-          const errorMessage =
-            err instanceof Error ? err.message : "Failed to load data";
-          setError(errorMessage);
-        }
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchData();
-  }, [fetchInventory]);
-
-  // Fetch cluster utilization metrics
-  useEffect(() => {
-    // Only fetch metrics when a specific cluster is selected
-    if (selectedClusterId === "all") {
-      setUtilizationMetrics(null);
-      return;
+    if (newestCollectionId !== pagedCollectionId) {
+      setPagedCollectionId(newestCollectionId);
+      setVmsPage(1);
     }
-
-    let cancelled = false;
-
-    const fetchUtilizationMetrics = async () => {
-      try {
-        const collectionId = await getLatestCollectionId(agentApi);
-        if (!collectionId) {
-          if (!cancelled) {
-            setUtilizationMetrics(null);
-          }
-          return;
-        }
-
-        const response = await agentApi.getClusterUtilization({
-          id: collectionId,
-          clusterId: selectedClusterId,
-        });
-
-        // Only update state if the effect hasn't been cleaned up
-        if (!cancelled) {
-          setUtilizationMetrics(response.cluster);
-        }
-      } catch (err) {
-        if (!cancelled) {
-          console.warn("Failed to fetch utilization metrics:", err);
-          setUtilizationMetrics(null);
-        }
-      }
-    };
-
-    void fetchUtilizationMetrics();
-
-    return () => {
-      cancelled = true;
-    };
-  }, [agentApi, selectedClusterId]);
-
-  // Fetch available filter options once when VMs tab is first accessed
-  useEffect(() => {
-    if (activeTab !== REPORT_TAB.vms) return;
-    if (filterOptionsFetched) return;
-    if (!inventory) return;
-
-    const fetchFilterOptions = async () => {
-      try {
-        await refreshFilterOptions();
-        setFilterOptionsFetched(true);
-      } catch (err) {
-        console.error("Error fetching filter options:", err);
-        if (inventory) {
-          setFilterOptionsFetched(true);
-        }
-      }
-    };
-
-    fetchFilterOptions();
-  }, [activeTab, filterOptionsFetched, inventory, refreshFilterOptions]);
-
-  // Fetch VMs when Virtual Machines tab is active or filters change
-  useEffect(() => {
-    if (activeTab !== REPORT_TAB.vms) return;
-
-    const fetchVMs = async () => {
-      vmsRequestIdRef.current += 1;
-      const currentRequestId = vmsRequestIdRef.current;
-
-      try {
-        setVmsLoading(true);
-
-        const byExpression = filtersToByExpression(
-          withDefaultReportInclusion(initialVMFilters),
-        );
-
-        const response = await agentApi.listLatestVirtualMachines({
-          byExpression,
-          sort: vmsSortFields.length > 0 ? vmsSortFields : undefined,
-          page: vmsPage,
-          pageSize: vmsPageSize,
-        });
-
-        if (currentRequestId === vmsRequestIdRef.current) {
-          setVmsList(normalizeVirtualMachines(response.virtualMachines));
-          setVmsTotalCount(response.total || 0);
-        }
-      } catch (err) {
-        console.error("Error fetching VMs:", err);
-        if (currentRequestId === vmsRequestIdRef.current) {
-          setVmsList([]);
-          setVmsTotalCount(0);
-        }
-      } finally {
-        if (currentRequestId === vmsRequestIdRef.current) {
-          setVmsLoading(false);
-        }
-      }
-    };
-
-    fetchVMs();
-  }, [
-    activeTab,
-    agentApi,
-    initialVMFilters,
-    vmsPage,
-    vmsPageSize,
-    vmsSortFields,
-  ]);
-
-  const refreshVMs = useCallback(async () => {
-    const reqId = ++vmsRefreshIdRef.current;
-    try {
-      const byExpression = filtersToByExpression(
-        withDefaultReportInclusion(initialVMFilters),
-      );
-      const [response, labelsResponse] = await Promise.all([
-        agentApi.listLatestVirtualMachines({
-          byExpression,
-          sort: vmsSortFields.length > 0 ? vmsSortFields : undefined,
-          page: vmsPage,
-          pageSize: vmsPageSize,
-        }),
-        agentApi.getLatestVMLabels().catch(() => null),
-      ]);
-      if (vmsRefreshIdRef.current === reqId) {
-        setVmsList(normalizeVirtualMachines(response.virtualMachines));
-        setVmsTotalCount(response.total || 0);
-        setAvailableFilterOptions((prev) => ({
-          ...prev,
-          vmLabels: labelsResponse?.labels ?? prev.vmLabels,
-        }));
-      }
-    } catch (err) {
-      console.error("Error refreshing VMs:", err);
-    }
-  }, [agentApi, initialVMFilters, vmsSortFields, vmsPage, vmsPageSize]);
-
-  const { onCompleted } = useReportsContext();
-
-  const handleReportRefreshCompleted = useCallback(async () => {
-    setVmsPage(1);
-    setFilterOptionsFetched(false);
-
-    await Promise.all([
-      reloadInventory().catch((err) => {
-        console.error("Error refreshing Inventory after new report:", err);
-      }),
-      refreshVMs().catch((err) => {
-        console.error("Error refreshing VMs after new report:", err);
-      }),
-      refreshApplications().catch((err) => {
-        console.error("Error refreshing applications after new report:", err);
-      }),
-      Promise.resolve(refreshFilterOptions({ force: true })).catch(
-        () => undefined,
-      ),
-    ]);
-
-    setReportDataRefreshKey((current) => current + 1);
-  }, [reloadInventory, refreshVMs, refreshApplications, refreshFilterOptions]);
-
-  useEffect(() => {
-    return onCompleted(handleReportRefreshCompleted);
-  }, [onCompleted, handleReportRefreshCompleted]);
+  }, [newestCollectionId, pagedCollectionId]);
 
   const {
     isExportModalOpen,
@@ -395,7 +210,7 @@ export const ReportContainer: React.FC = () => {
     hasInventory: Boolean(inventory),
   });
 
-  if (loading) {
+  if (inventoryLoading) {
     return (
       <PageSection hasBodyWrapper={false} isFilled style={{ padding: "24px" }}>
         <Stack hasGutter>
@@ -414,7 +229,7 @@ export const ReportContainer: React.FC = () => {
     );
   }
 
-  if (error) {
+  if (inventoryError) {
     return (
       <PageSection hasBodyWrapper={false} isFilled style={{ padding: "24px" }}>
         <Stack hasGutter>
@@ -427,7 +242,7 @@ export const ReportContainer: React.FC = () => {
           </StackItem>
           <StackItem>
             <Alert variant="danger" title="Error loading inventory">
-              {error}
+              {getSdkErrorMessage(inventoryError, "Failed to load data")}
             </Alert>
           </StackItem>
         </Stack>
@@ -499,7 +314,6 @@ export const ReportContainer: React.FC = () => {
       newParams = buildApplicationsTabUrl(searchParams);
     } else {
       newParams = buildOverviewTabUrl(searchParams);
-      void reloadInventory();
     }
     setSearchParams(newParams, { replace: true });
   };
@@ -609,7 +423,7 @@ export const ReportContainer: React.FC = () => {
               <div style={{ marginTop: "24px" }}>
                 {clusterView.viewInfra && clusterView.viewVms ? (
                   <Dashboard
-                    key={`assessment-${inventoryRevision}-${reportDataRefreshKey}-${clusterView.viewVms.total ?? 0}-${clusterView.selectionId}`}
+                    key={`assessment-${clusterView.viewVms.total ?? 0}-${clusterView.selectionId}`}
                     infra={clusterView.viewInfra}
                     cpuCores={clusterView.cpuCores}
                     ramGB={clusterView.ramGB}
@@ -645,7 +459,7 @@ export const ReportContainer: React.FC = () => {
               <div style={{ marginTop: "24px" }}>
                 <VirtualMachinesView
                   vms={vmsList}
-                  loading={vmsLoading}
+                  loading={vmsFetching}
                   initialFilters={initialVMFilters}
                   totalVMs={vmsTotalCount}
                   currentPage={vmsPage}
@@ -656,9 +470,6 @@ export const ReportContainer: React.FC = () => {
                   sortFields={vmsSortFields}
                   availableFilterOptions={availableFilterOptions}
                   agentApi={agentApi}
-                  onRefreshVMs={refreshVMs}
-                  onRefreshInventory={refreshInventory}
-                  onRefreshFilterOptions={refreshFilterOptions}
                 />
               </div>
             </Tab>
@@ -669,15 +480,13 @@ export const ReportContainer: React.FC = () => {
               <div style={{ marginTop: "24px" }}>
                 <ApplicationsView
                   applications={applicationsList}
-                  loading={applicationsLoading}
+                  loading={applicationsFetching}
                   error={applicationsError}
                   agentApi={agentApi}
                   selectedApplicationName={selectedApplicationName}
                   onClearSelectedApplication={handleClearSelectedApplication}
                   onNavigateToVm={handleNavigateToVm}
                   onViewInVmList={handleViewApplicationInVmList}
-                  onRefreshApplications={refreshApplications}
-                  onRefreshFilterOptions={refreshFilterOptions}
                 />
               </div>
             </Tab>

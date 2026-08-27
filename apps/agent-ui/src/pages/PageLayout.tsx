@@ -33,8 +33,21 @@ import { Outlet, useLocation, useNavigate } from "react-router-dom";
 import RedHatOpenShiftLogo from "../assets/RedHatOpenShiftLogo.png";
 import { getCollectionProgressInfo } from "../common/collectionProgress";
 import { CollectionProgress } from "../common/components";
-import { useReportsContext } from "../common/report/ReportsContext";
+import { RunNewReportModal } from "../common/report/RunNewReportModal";
+import { CredentialsModalProvider } from "../credentials/CredentialsModalController";
 import VCenterCredentialsDropdownMenu from "../credentials/VCenterCredentialsDropdownMenu";
+import { useAppDispatch, useAppSelector } from "../store/hooks";
+import {
+  closeModal,
+  dismissCollectError,
+  dismissReadyAlert,
+  selectCollectError,
+  selectCollectorStatus,
+  selectIsCollecting,
+  selectIsModalOpen,
+  selectShowReadyAlert,
+} from "../store/slices/collectionLifecycleSlice";
+import { startCollection } from "../store/thunks/startCollection";
 
 interface ReportNavItem {
   path: string;
@@ -95,14 +108,11 @@ const navItemStyle = css`
 `;
 
 const RunNewReportAlerts: React.FC = () => {
-  const {
-    isCollecting,
-    collectorStatus,
-    showReadyAlert,
-    collectError,
-    dismissReadyAlert,
-    dismissCollectError,
-  } = useReportsContext();
+  const dispatch = useAppDispatch();
+  const isCollecting = useAppSelector(selectIsCollecting);
+  const collectorStatus = useAppSelector(selectCollectorStatus);
+  const showReadyAlert = useAppSelector(selectShowReadyAlert);
+  const collectError = useAppSelector(selectCollectError);
 
   const collectionProgress = getCollectionProgressInfo(
     collectorStatus,
@@ -144,7 +154,9 @@ const RunNewReportAlerts: React.FC = () => {
               isInline
               title="New report ready"
               actionClose={
-                <AlertActionCloseButton onClose={dismissReadyAlert} />
+                <AlertActionCloseButton
+                  onClose={() => dispatch(dismissReadyAlert())}
+                />
               }
             >
               Your migration report now reflects the latest infrastructure
@@ -160,7 +172,9 @@ const RunNewReportAlerts: React.FC = () => {
               isInline
               title="New report failed"
               actionClose={
-                <AlertActionCloseButton onClose={dismissCollectError} />
+                <AlertActionCloseButton
+                  onClose={() => dispatch(dismissCollectError())}
+                />
               }
             >
               {collectError}
@@ -169,6 +183,24 @@ const RunNewReportAlerts: React.FC = () => {
         )}
       </Stack>
     </PageSection>
+  );
+};
+
+const RunNewReportModalContainer: React.FC = () => {
+  const dispatch = useAppDispatch();
+  const isOpen = useAppSelector(selectIsModalOpen);
+
+  return (
+    <RunNewReportModal
+      isOpen={isOpen}
+      onConfirm={async () => {
+        // `.unwrap()` rejects with { message } on start failure, which the modal
+        // surfaces inline (spinner + "Retry"). The listener middleware takes over
+        // once the run has started.
+        await dispatch(startCollection()).unwrap();
+      }}
+      onCancel={() => dispatch(closeModal())}
+    />
   );
 };
 
@@ -191,78 +223,81 @@ export const PageLayout: React.FC = () => {
   }, [activeItem]);
 
   return (
-    <Page
-      isManagedSidebar
-      masthead={
-        <Masthead>
-          <MastheadMain>
-            <MastheadToggle>
-              <PageToggleButton
-                isHamburgerButton
-                aria-label="Global navigation"
-              />
-            </MastheadToggle>
-            <MastheadBrand>
-              <MastheadLogo>
-                <Brand
-                  src={RedHatOpenShiftLogo}
-                  alt="Red Hat OpenShift Logo"
-                  heights={{ default: "36px" }}
+    <CredentialsModalProvider>
+      <Page
+        isManagedSidebar
+        masthead={
+          <Masthead>
+            <MastheadMain>
+              <MastheadToggle>
+                <PageToggleButton
+                  isHamburgerButton
+                  aria-label="Global navigation"
                 />
-              </MastheadLogo>
-            </MastheadBrand>
-          </MastheadMain>
-          <MastheadContent>
-            <Toolbar isFullHeight>
-              <ToolbarContent>
-                <ToolbarGroup align={{ default: "alignEnd" }}>
-                  <ToolbarItem>
-                    <VCenterCredentialsDropdownMenu />
-                  </ToolbarItem>
-                </ToolbarGroup>
-              </ToolbarContent>
-            </Toolbar>
-          </MastheadContent>
-        </Masthead>
-      }
-      sidebar={
-        <PageSidebar>
-          <PageSidebarBody>
-            <Title headingLevel="h1" size="lg" className={appTitleStyle}>
-              Migration Advisor
-            </Title>
-            <Nav aria-label="Main navigation">
-              <NavList>
-                {NAV_SECTIONS.map((section) => (
-                  <NavGroup
-                    key={section.title}
-                    title={section.title}
-                    className={navGroupStyle}
-                  >
-                    {section.items.map((item) => {
-                      const isActive = activeItem?.path === item.path;
-                      return (
-                        <NavItem
-                          key={item.path}
-                          isActive={isActive}
-                          className={`${navItemStyle}${isActive ? " report-nav-item-active" : ""}`}
-                          onClick={() => navigate(item.path)}
-                        >
-                          {item.label}
-                        </NavItem>
-                      );
-                    })}
-                  </NavGroup>
-                ))}
-              </NavList>
-            </Nav>
-          </PageSidebarBody>
-        </PageSidebar>
-      }
-    >
-      <RunNewReportAlerts />
-      <Outlet />
-    </Page>
+              </MastheadToggle>
+              <MastheadBrand>
+                <MastheadLogo>
+                  <Brand
+                    src={RedHatOpenShiftLogo}
+                    alt="Red Hat OpenShift Logo"
+                    heights={{ default: "36px" }}
+                  />
+                </MastheadLogo>
+              </MastheadBrand>
+            </MastheadMain>
+            <MastheadContent>
+              <Toolbar isFullHeight>
+                <ToolbarContent>
+                  <ToolbarGroup align={{ default: "alignEnd" }}>
+                    <ToolbarItem>
+                      <VCenterCredentialsDropdownMenu />
+                    </ToolbarItem>
+                  </ToolbarGroup>
+                </ToolbarContent>
+              </Toolbar>
+            </MastheadContent>
+          </Masthead>
+        }
+        sidebar={
+          <PageSidebar>
+            <PageSidebarBody>
+              <Title headingLevel="h1" size="lg" className={appTitleStyle}>
+                Migration Advisor
+              </Title>
+              <Nav aria-label="Main navigation">
+                <NavList>
+                  {NAV_SECTIONS.map((section) => (
+                    <NavGroup
+                      key={section.title}
+                      title={section.title}
+                      className={navGroupStyle}
+                    >
+                      {section.items.map((item) => {
+                        const isActive = activeItem?.path === item.path;
+                        return (
+                          <NavItem
+                            key={item.path}
+                            isActive={isActive}
+                            className={`${navItemStyle}${isActive ? " report-nav-item-active" : ""}`}
+                            onClick={() => navigate(item.path)}
+                          >
+                            {item.label}
+                          </NavItem>
+                        );
+                      })}
+                    </NavGroup>
+                  ))}
+                </NavList>
+              </Nav>
+            </PageSidebarBody>
+          </PageSidebar>
+        }
+      >
+        <RunNewReportAlerts />
+        <Outlet />
+        <RunNewReportModalContainer />
+      </Page>
+    </CredentialsModalProvider>
   );
 };
 
