@@ -1,6 +1,7 @@
 import { describe, expect, test, vi } from "vitest";
 import type { AgentApiClient } from "../../api/agentApi";
 import { createStore } from "../index";
+import { withCollectorReady } from "../testUtils";
 import { agentApiSlice } from "./agentApiSlice";
 import { groupsEndpoints } from "./groupsEndpoints";
 
@@ -10,7 +11,7 @@ import { groupsEndpoints } from "./groupsEndpoints";
  * queries refetch fresh data.
  */
 function makeFakeApi(counts: { total: number }): AgentApiClient {
-  return {
+  return withCollectorReady({
     getLatestGroup: vi.fn(async () => ({
       group: { id: "g1", name: "create-group-1", filter: "id in ['a','b']" },
       total: counts.total,
@@ -26,7 +27,7 @@ function makeFakeApi(counts: { total: number }): AgentApiClient {
       virtualMachines: [],
       total: counts.total,
     })),
-  } as unknown as AgentApiClient;
+  });
 }
 
 const VMS_ARG = {
@@ -86,7 +87,7 @@ describe("groupsEndpoints tag invalidation", () => {
       { id: "g1", name: "prod", filter: "id in ['a']" },
       { id: "g2", name: "dev", filter: "id in ['b']" },
     ];
-    const api = {
+    const api = withCollectorReady({
       listLatestGroups: vi.fn(async () => ({
         groups,
         total: groups.length,
@@ -99,7 +100,7 @@ describe("groupsEndpoints tag invalidation", () => {
         filter: "id in ['c']",
       })),
       deleteLatestGroup: vi.fn(async () => undefined),
-    } as unknown as AgentApiClient;
+    });
     const store = createStore(api);
 
     await store.dispatch(
@@ -132,7 +133,7 @@ describe("groupsEndpoints tag invalidation", () => {
 
   test("getAllGroups provides Group:LIST and refetches after a create", async () => {
     const groups = [{ id: "g1", name: "prod", filter: "id in ['a']" }];
-    const api = {
+    const api = withCollectorReady({
       listLatestGroups: vi.fn(async () => ({
         groups,
         total: groups.length,
@@ -144,7 +145,7 @@ describe("groupsEndpoints tag invalidation", () => {
         name: "new",
         filter: "id in ['b']",
       })),
-    } as unknown as AgentApiClient;
+    });
     const store = createStore(api);
 
     await store.dispatch(

@@ -1,6 +1,7 @@
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 import type { AgentApiClient } from "../../api/agentApi";
 import { createStore } from "../index";
+import { withCollectorReady } from "../testUtils";
 import { vmsEndpoints } from "./vmsEndpoints";
 
 /**
@@ -18,7 +19,7 @@ const VMS_ARG = {
 };
 
 function makeFakeApi(counts: { total: number }): AgentApiClient {
-  return {
+  return withCollectorReady({
     configuration: { basePath: "http://localhost/agent/api/v2" },
     listLatestVirtualMachines: vi.fn(async () => ({
       virtualMachines: [{ id: "vm1" }, { id: "vm2" }],
@@ -29,7 +30,7 @@ function makeFakeApi(counts: { total: number }): AgentApiClient {
     updateLatestLabelVMs: vi.fn(async () => undefined),
     getLatestVMLabels: vi.fn(async () => ({ labels: ["prod"] })),
     listLatestGroups: vi.fn(async () => ({ groups: [], pageCount: 1 })),
-  } as unknown as AgentApiClient;
+  });
 }
 
 /** Stub GET /inventory so getInventory (raw fetch) returns tracked totals. */
@@ -97,10 +98,10 @@ describe("vmsEndpoints tag invalidation", () => {
   });
 
   test("getVMDetail merges the VM record with its utilization", async () => {
-    const api = {
+    const api = withCollectorReady({
       getLatestVirtualMachine: vi.fn(async () => ({ id: "vm1", name: "web" })),
       getLatestVMUtilization: vi.fn(async () => ({ cpu_avg: 42 })),
-    } as unknown as AgentApiClient;
+    });
     const store = createStore(api);
 
     const result = await store
@@ -116,12 +117,12 @@ describe("vmsEndpoints tag invalidation", () => {
   });
 
   test("getVMDetail still resolves when utilization is unavailable", async () => {
-    const api = {
+    const api = withCollectorReady({
       getLatestVirtualMachine: vi.fn(async () => ({ id: "vm1", name: "web" })),
       getLatestVMUtilization: vi.fn(async () => {
         throw new Error("no metrics");
       }),
-    } as unknown as AgentApiClient;
+    });
     const store = createStore(api);
 
     const result = await store
@@ -132,10 +133,10 @@ describe("vmsEndpoints tag invalidation", () => {
   });
 
   test("getClusterUtilization returns null when no collection exists", async () => {
-    const api = {
+    const api = withCollectorReady({
       listCollections: vi.fn(async () => ({ collections: [] })),
       getClusterUtilization: vi.fn(),
-    } as unknown as AgentApiClient;
+    });
     const store = createStore(api);
 
     const result = await store

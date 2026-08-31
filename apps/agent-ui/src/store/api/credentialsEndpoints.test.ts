@@ -1,6 +1,7 @@
 import { describe, expect, test, vi } from "vitest";
 import type { AgentApiClient } from "../../api/agentApi";
 import { createStore } from "../index";
+import { withCollectorReady } from "../testUtils";
 import { credentialsEndpoints } from "./credentialsEndpoints";
 
 /**
@@ -9,7 +10,7 @@ import { credentialsEndpoints } from "./credentialsEndpoints";
  * `Credentials` invalidation.
  */
 function makeFakeApi(state: { valid: boolean }): AgentApiClient {
-  return {
+  return withCollectorReady({
     getCredentials: vi.fn(async () => ({
       url: "https://vcenter.example.com/sdk",
       username: "admin@vsphere.local",
@@ -31,7 +32,7 @@ function makeFakeApi(state: { valid: boolean }): AgentApiClient {
       };
     }),
     deleteCredentials: vi.fn(async () => undefined),
-  } as unknown as AgentApiClient;
+  });
 }
 
 describe("credentialsEndpoints tag invalidation", () => {

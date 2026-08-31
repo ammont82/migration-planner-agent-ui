@@ -1,8 +1,8 @@
 import { describe, expect, test, vi } from "vitest";
-import type { AgentApiClient } from "../../api/agentApi";
 import { getForecasterStatus } from "../../pages/StorageOffloadEstimator/utils/forecasterApi";
 import type { ForecasterStatus } from "../../pages/StorageOffloadEstimator/utils/forecasterTypes";
 import { createStore } from "../index";
+import { withCollectorReady } from "../testUtils";
 import { agentApiSlice } from "./agentApiSlice";
 import { forecasterEndpoints } from "./forecasterEndpoints";
 
@@ -21,7 +21,7 @@ describe("forecasterEndpoints", () => {
       async () => status.current,
     );
 
-    const store = createStore({} as unknown as AgentApiClient);
+    const store = createStore(withCollectorReady());
 
     await store.dispatch(
       forecasterEndpoints.endpoints.getForecasterStatus.initiate(undefined),

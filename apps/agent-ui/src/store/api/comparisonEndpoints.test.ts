@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, test, vi } from "vitest";
 import type { AgentApiClient } from "../../api/agentApi";
 import { createStore } from "../index";
+import { withCollectorReady } from "../testUtils";
 import { agentApiSlice } from "./agentApiSlice";
 import { comparisonEndpoints } from "./comparisonEndpoints";
 
@@ -14,7 +15,7 @@ import { comparisonEndpoints } from "./comparisonEndpoints";
 const COMPARE_ARG = { aId: "c1", bId: "c2" };
 
 function makeFakeApi(): AgentApiClient {
-  return {
+  return withCollectorReady({
     listCollections: vi.fn(async () => ({
       collections: [
         { id: "c2", createdAt: new Date("2026-02-01T00:00:00Z") },
@@ -25,7 +26,7 @@ function makeFakeApi(): AgentApiClient {
       collections: [],
       diff: {},
     })),
-  } as unknown as AgentApiClient;
+  });
 }
 
 describe("comparisonEndpoints tag invalidation", () => {
