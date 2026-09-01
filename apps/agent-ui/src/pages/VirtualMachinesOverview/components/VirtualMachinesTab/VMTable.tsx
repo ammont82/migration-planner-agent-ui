@@ -14,6 +14,7 @@ export const VMTable: React.FC<VMTableProps> = ({
   initialFilters,
   onVMClick,
   onVMApplicationsClick,
+  onVMIssuesClick,
   totalVMs,
   currentPage = 1,
   pageSize = 20,
@@ -97,6 +98,7 @@ export const VMTable: React.FC<VMTableProps> = ({
           isGroupRowActions={isGroupRowActions}
           onVMClick={onVMClick}
           onVMApplicationsClick={onVMApplicationsClick}
+          onVMIssuesClick={onVMIssuesClick}
           onRunDeepInspection={onRunDeepInspection}
           onExcludeFromReports={onExcludeFromReports}
           onIncludeInReports={onIncludeInReports}

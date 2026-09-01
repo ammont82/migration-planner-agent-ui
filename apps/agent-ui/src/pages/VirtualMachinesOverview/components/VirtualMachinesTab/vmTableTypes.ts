@@ -19,6 +19,7 @@ export interface VMTableProps {
   initialFilters?: VMFilters;
   onVMClick?: (vmId: string) => void;
   onVMApplicationsClick?: (vmId: string) => void;
+  onVMIssuesClick?: (vmId: string) => void;
   totalVMs?: number;
   currentPage?: number;
   pageSize?: number;

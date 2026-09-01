@@ -70,6 +70,13 @@ describe("buildVmDetailUrl", () => {
     });
     expect(params.get("vmSection")).toBe("applications");
   });
+
+  it("sets vmSection to issues when the issues section is requested", () => {
+    const params = buildVmDetailUrl(new URLSearchParams("tab=vms"), "vm-123", {
+      section: "issues",
+    });
+    expect(params.get("vmSection")).toBe("issues");
+  });
 });
 
 describe("tab navigation URLs", () => {

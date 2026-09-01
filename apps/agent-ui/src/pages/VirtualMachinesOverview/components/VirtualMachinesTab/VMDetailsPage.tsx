@@ -51,6 +51,33 @@ import { VMProcessesCard } from "./VMProcessesCard";
 import { formatMetric } from "./VMUtilizationMetrics";
 
 const MB_IN_GB = 1024;
+const VM_ISSUES_SECTION_ID = "vm-issues-section";
+
+const ISSUE_CATEGORIES = [
+  "Critical",
+  "Error",
+  "Warning",
+  "Advisory",
+  "Information",
+  "Other",
+] as const;
+
+type IssueCategory = (typeof ISSUE_CATEGORIES)[number];
+
+const EMPTY_EXPANDED_CATEGORIES: Record<IssueCategory, boolean> = {
+  Critical: false,
+  Error: false,
+  Warning: false,
+  Advisory: false,
+  Information: false,
+  Other: false,
+};
+
+const isIssueCategory = (category: string): category is IssueCategory =>
+  ISSUE_CATEGORIES.some((known) => known === category);
+
+const normalizeIssueCategory = (category: string): IssueCategory =>
+  isIssueCategory(category) ? category : "Other";
 
 const formatMemorySize = (sizeInMB: number): string => {
   const sizeInGB = sizeInMB / MB_IN_GB;
@@ -98,15 +125,9 @@ export const VMDetailsPage: React.FC<VMDetailsPageProps> = ({
     : null;
 
   const [expandedCategories, setExpandedCategories] = useState<
-    Record<string, boolean>
-  >({
-    Critical: false,
-    Error: false,
-    Warning: false,
-    Advisory: false,
-    Information: false,
-    Other: false,
-  });
+    Record<IssueCategory, boolean>
+  >(EMPTY_EXPANDED_CATEGORIES);
+  const issuesSectionRef = useRef<HTMLDivElement>(null);
   const applicationsSectionRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -123,20 +144,36 @@ export const VMDetailsPage: React.FC<VMDetailsPageProps> = ({
       behavior: "smooth",
       block: "start",
     });
-
-    const timeoutId = window.setTimeout(() => {
-      onScrollToSectionComplete?.();
-    }, 600);
-
-    return () => {
-      window.clearTimeout(timeoutId);
-    };
+    onScrollToSectionComplete?.();
   }, [
     applicationsLoading,
     loading,
     onScrollToSectionComplete,
     scrollToSection,
   ]);
+
+  useEffect(() => {
+    if (scrollToSection !== "issues" || loading || !vm) {
+      return;
+    }
+
+    const target = issuesSectionRef.current;
+    if (!target) {
+      return;
+    }
+
+    const categoriesWithIssues = { ...EMPTY_EXPANDED_CATEGORIES };
+    for (const issue of vm.issues ?? []) {
+      categoriesWithIssues[normalizeIssueCategory(issue.category)] = true;
+    }
+    setExpandedCategories(categoriesWithIssues);
+
+    target.scrollIntoView({
+      behavior: "smooth",
+      block: "start",
+    });
+    onScrollToSectionComplete?.();
+  }, [loading, onScrollToSectionComplete, scrollToSection, vm]);
 
   if (loading) {
     return (
@@ -765,158 +802,143 @@ export const VMDetailsPage: React.FC<VMDetailsPageProps> = ({
       </StackItem>
 
       <StackItem>
-        <Card>
-          <CardTitle>
-            <ExclamationTriangleIcon /> Issues
-          </CardTitle>
-          <CardBody>
-            {(() => {
-              const getAlertVariant = (category: string) => {
-                switch (category) {
-                  case "Critical":
-                  case "Error":
-                    return "danger";
-                  case "Warning":
-                    return "warning";
-                  case "Information":
-                  case "Advisory":
-                    return "info";
-                  default:
-                    return "custom";
-                }
-              };
-
-              const getCategoryIcon = (category: string) => {
-                switch (category) {
-                  case "Critical":
-                  case "Error":
-                    return (
-                      <Icon status="danger">
-                        <ExclamationCircleIcon />
-                      </Icon>
-                    );
-                  case "Warning":
-                    return (
-                      <Icon status="warning">
-                        <ExclamationTriangleIcon />
-                      </Icon>
-                    );
-                  case "Information":
-                  case "Advisory":
-                    return (
-                      <Icon status="info">
-                        <InfoCircleIcon />
-                      </Icon>
-                    );
-                  default:
-                    return (
-                      <Icon status="info">
-                        <InfoCircleIcon />
-                      </Icon>
-                    );
-                }
-              };
-
-              // Define all categories with their order
-              const allCategories = [
-                "Critical",
-                "Error",
-                "Warning",
-                "Advisory",
-                "Information",
-                "Other",
-              ];
-
-              // Group issues by category, normalizing unknown categories to "Other"
-              const issuesByCategory = (vm.issues || []).reduce(
-                (acc, issue) => {
-                  const cat = allCategories.includes(issue.category)
-                    ? issue.category
-                    : "Other";
-                  if (!acc[cat]) {
-                    acc[cat] = [];
+        <div ref={issuesSectionRef}>
+          <Card id={VM_ISSUES_SECTION_ID}>
+            <CardTitle>
+              <ExclamationTriangleIcon /> Issues
+            </CardTitle>
+            <CardBody>
+              {(() => {
+                const getAlertVariant = (category: IssueCategory) => {
+                  switch (category) {
+                    case "Critical":
+                    case "Error":
+                      return "danger";
+                    case "Warning":
+                      return "warning";
+                    case "Information":
+                    case "Advisory":
+                      return "info";
+                    case "Other":
+                      return "custom";
                   }
-                  acc[cat].push(issue);
-                  return acc;
-                },
-                {} as Record<string, VirtualMachineIssue[]>,
-              );
+                };
 
-              const toggleCategory = (category: string) => {
-                setExpandedCategories((prev) => ({
-                  ...prev,
-                  [category]: !prev[category],
-                }));
-              };
+                const getCategoryIcon = (category: IssueCategory) => {
+                  switch (category) {
+                    case "Critical":
+                    case "Error":
+                      return (
+                        <Icon status="danger">
+                          <ExclamationCircleIcon />
+                        </Icon>
+                      );
+                    case "Warning":
+                      return (
+                        <Icon status="warning">
+                          <ExclamationTriangleIcon />
+                        </Icon>
+                      );
+                    case "Information":
+                    case "Advisory":
+                    case "Other":
+                      return (
+                        <Icon status="info">
+                          <InfoCircleIcon />
+                        </Icon>
+                      );
+                  }
+                };
 
-              return (
-                <Stack hasGutter>
-                  {allCategories.map((category) => {
-                    const categoryIssues = issuesByCategory[category] || [];
-                    const count = categoryIssues.length;
-
-                    // Hide "Other" category if it has no issues
-                    if (category === "Other" && count === 0) {
-                      return null;
+                // Group issues by category, normalizing unknown categories to "Other"
+                const issuesByCategory = (vm.issues || []).reduce(
+                  (acc, issue) => {
+                    const cat = normalizeIssueCategory(issue.category);
+                    if (!acc[cat]) {
+                      acc[cat] = [];
                     }
+                    acc[cat].push(issue);
+                    return acc;
+                  },
+                  {} as Record<IssueCategory, VirtualMachineIssue[]>,
+                );
 
-                    return (
-                      <StackItem key={category}>
-                        <ExpandableSection
-                          toggleContent={
-                            <div
-                              style={{
-                                display: "flex",
-                                alignItems: "center",
-                                gap: "8px",
-                              }}
-                            >
-                              {getCategoryIcon(category)}
-                              <span>
-                                {category} ({count})
-                              </span>
-                            </div>
-                          }
-                          isExpanded={expandedCategories[category] || false}
-                          onToggle={() => toggleCategory(category)}
-                          isIndented
-                        >
-                          {count > 0 ? (
-                            <Stack hasGutter>
-                              {categoryIssues.map((issue) => (
-                                <StackItem
-                                  key={`issue-${category}-${issue.label}`}
-                                >
-                                  <Alert
-                                    variant={getAlertVariant(category)}
-                                    isInline
-                                    isPlain
-                                    title={issue.label}
+                const toggleCategory = (category: IssueCategory) => {
+                  setExpandedCategories((prev) => ({
+                    ...prev,
+                    [category]: !prev[category],
+                  }));
+                };
+
+                return (
+                  <Stack hasGutter>
+                    {ISSUE_CATEGORIES.map((category) => {
+                      const categoryIssues = issuesByCategory[category] || [];
+                      const count = categoryIssues.length;
+
+                      // Hide "Other" category if it has no issues
+                      if (category === "Other" && count === 0) {
+                        return null;
+                      }
+
+                      return (
+                        <StackItem key={category}>
+                          <ExpandableSection
+                            toggleContent={
+                              <div
+                                style={{
+                                  display: "flex",
+                                  alignItems: "center",
+                                  gap: "8px",
+                                }}
+                              >
+                                {getCategoryIcon(category)}
+                                <span>
+                                  {category} ({count})
+                                </span>
+                              </div>
+                            }
+                            isExpanded={expandedCategories[category] || false}
+                            onToggle={() => toggleCategory(category)}
+                            isIndented
+                          >
+                            {count > 0 ? (
+                              <Stack hasGutter>
+                                {categoryIssues.map((issue) => (
+                                  <StackItem
+                                    key={`issue-${category}-${issue.label}`}
                                   >
-                                    {issue.description}
-                                  </Alert>
-                                </StackItem>
-                              ))}
-                            </Stack>
-                          ) : (
-                            <span
-                              style={{
-                                color:
-                                  "var(--pf-t--global--text--color--subtle)",
-                              }}
-                            >
-                              No {category.toLowerCase()} issues found
-                            </span>
-                          )}
-                        </ExpandableSection>
-                      </StackItem>
-                    );
-                  })}
-                </Stack>
-              );
-            })()}
-          </CardBody>
-        </Card>
+                                    <Alert
+                                      variant={getAlertVariant(category)}
+                                      isInline
+                                      isPlain
+                                      title={issue.label}
+                                    >
+                                      {issue.description}
+                                    </Alert>
+                                  </StackItem>
+                                ))}
+                              </Stack>
+                            ) : (
+                              <span
+                                style={{
+                                  color:
+                                    "var(--pf-t--global--text--color--subtle)",
+                                }}
+                              >
+                                No {category.toLowerCase()} issues found
+                              </span>
+                            )}
+                          </ExpandableSection>
+                        </StackItem>
+                      );
+                    })}
+                  </Stack>
+                );
+              })()}
+            </CardBody>
+          </Card>
+        </div>
       </StackItem>
 
       <StackItem>
