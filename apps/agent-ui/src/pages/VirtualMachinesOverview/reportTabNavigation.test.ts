@@ -71,11 +71,11 @@ describe("buildVmDetailUrl", () => {
     expect(params.get("vmSection")).toBe("applications");
   });
 
-  it("sets vmSection to issues when the issues section is requested", () => {
+  it("passes through any section name without validating it", () => {
     const params = buildVmDetailUrl(new URLSearchParams("tab=vms"), "vm-123", {
-      section: "issues",
+      section: "issues_errors",
     });
-    expect(params.get("vmSection")).toBe("issues");
+    expect(params.get("vmSection")).toBe("issues_errors");
   });
 });
 

@@ -17,7 +17,7 @@ import { VmDetailListCardToolbar } from "./VmDetailListCardToolbar";
 import { VmDetailListSearchEmptyState } from "./VmDetailListSearchEmptyState";
 import { useVmDetailListCardState } from "./vmDetailListCard";
 
-export const VM_APPLICATIONS_SECTION_ID = "vm-applications-section";
+export const VM_APPLICATIONS_SECTION_ID = "applications";
 
 const styles = {
   loading: css`
