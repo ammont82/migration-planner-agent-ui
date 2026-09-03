@@ -470,6 +470,14 @@ export const VirtualMachinesView: React.FC<VirtualMachinesViewProps> = ({
     );
   };
 
+  const handleVMIssuesClick = (vmId: string) => {
+    setSelectedVMId(vmId);
+    setSearchParams(
+      buildVmDetailUrl(searchParams, vmId, { section: "issues" }),
+      { replace: true },
+    );
+  };
+
   const handleScrollToSectionComplete = useCallback(() => {
     if (!searchParams.has("vmSection")) {
       return;
@@ -687,6 +695,7 @@ export const VirtualMachinesView: React.FC<VirtualMachinesViewProps> = ({
         loading={loading}
         onVMClick={handleVMClick}
         onVMApplicationsClick={handleVMApplicationsClick}
+        onVMIssuesClick={handleVMIssuesClick}
         initialFilters={initialFilters}
         totalVMs={totalVMs}
         currentPage={currentPage}

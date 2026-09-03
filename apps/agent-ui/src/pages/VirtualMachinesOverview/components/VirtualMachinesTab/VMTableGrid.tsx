@@ -56,6 +56,7 @@ export interface VMTableGridProps {
   isGroupRowActions: boolean;
   onVMClick?: (vmId: string) => void;
   onVMApplicationsClick?: (vmId: string) => void;
+  onVMIssuesClick?: (vmId: string) => void;
   onRunDeepInspection?: (includeVmId?: string) => void;
   onExcludeFromReports?: (vmIds: string[]) => Promise<void>;
   onIncludeInReports?: (vmIds: string[]) => Promise<void>;
@@ -77,6 +78,7 @@ export const VMTableGrid: React.FC<VMTableGridProps> = ({
   isGroupRowActions,
   onVMClick,
   onVMApplicationsClick,
+  onVMIssuesClick,
   onRunDeepInspection,
   onExcludeFromReports,
   onIncludeInReports,
@@ -298,7 +300,19 @@ export const VMTableGrid: React.FC<VMTableGridProps> = ({
                 )}
                 {isColumnVisible("issues") && (
                   <Td dataLabel="Issues" modifier="fitContent">
-                    {vm.issueCount || 0}
+                    {(vm.issueCount || 0) > 0 &&
+                    onVMIssuesClick &&
+                    !disableVmNavigation ? (
+                      <Button
+                        variant="link"
+                        isInline
+                        onClick={() => onVMIssuesClick(vm.id)}
+                      >
+                        {vm.issueCount}
+                      </Button>
+                    ) : (
+                      vm.issueCount || 0
+                    )}
                   </Td>
                 )}
                 {isColumnVisible("deepInspection") && (
