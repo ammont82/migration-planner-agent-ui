@@ -116,6 +116,20 @@ export const ApplicationVmsDrawer: React.FC<ApplicationVmsDrawerProps> = ({
     [selectedVmIds],
   );
 
+  const selectableVmIds = useMemo(
+    () => drawerVms.map((vm) => vm.id),
+    [drawerVms],
+  );
+  const selectedSelectableCount = selectableVmIds.filter((id) =>
+    selectedVmIds.has(id),
+  ).length;
+  const areAllSelected =
+    selectableVmIds.length > 0 &&
+    selectedSelectableCount === selectableVmIds.length;
+  const areSomeSelected =
+    selectedSelectableCount > 0 &&
+    selectedSelectableCount < selectableVmIds.length;
+
   const toggleVmSelection = useCallback((vmId: string, isSelected: boolean) => {
     setSelectedVmIds((prev) => {
       const next = new Set(prev);
@@ -127,6 +141,15 @@ export const ApplicationVmsDrawer: React.FC<ApplicationVmsDrawerProps> = ({
       return next;
     });
   }, []);
+
+  const selectAllVms = useCallback(
+    (isSelecting: boolean) => {
+      setSelectedVmIds(
+        isSelecting ? new Set(selectableVmIds) : new Set<string>(),
+      );
+    },
+    [selectableVmIds],
+  );
 
   const actionsLabel =
     selectedVmIds.size > 0 ? `Actions (${selectedVmIds.size})` : "Actions";
@@ -240,7 +263,15 @@ export const ApplicationVmsDrawer: React.FC<ApplicationVmsDrawerProps> = ({
           >
             <Thead>
               <Tr>
-                <Th screenReaderText="Select" />
+                <Th
+                  select={{
+                    onSelect: (_event, isSelecting) =>
+                      selectAllVms(isSelecting),
+                    isSelected: areAllSelected,
+                    isIndeterminate: areSomeSelected,
+                  }}
+                  aria-label="Select all virtual machines"
+                />
                 <Th>Virtual machine name</Th>
                 <Th>Labels</Th>
                 <Th>Groups</Th>
