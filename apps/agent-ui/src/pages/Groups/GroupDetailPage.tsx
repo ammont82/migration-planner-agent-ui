@@ -473,6 +473,8 @@ export const GroupDetailPage: React.FC = () => {
                   ramGB={clusterView.ramGB}
                   vms={clusterView.viewVms}
                   clusters={clusterView.viewClusters}
+                  vcenterVersion={inventory?.vcenter_version}
+                  vcenterId={inventory?.vcenter_id}
                   isAggregateView={clusterView.isAggregateView}
                   clusterFound={clusterView.clusterFound}
                   onConcernClick={handleConcernClick}

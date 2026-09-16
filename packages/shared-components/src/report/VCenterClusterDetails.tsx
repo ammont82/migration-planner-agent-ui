@@ -111,7 +111,7 @@ const DetailedClusterView: FC<{ details: ClusterDetailsModel }> = ({
   details,
 }) => (
   <Grid hasGutter>
-    <GridItem span={12}>
+    <GridItem>
       <DescriptionList isAutoFit displaySize="lg">
         <DescriptionListGroup>
           <DescriptionListTerm>Hosts</DescriptionListTerm>
@@ -131,7 +131,7 @@ const DetailedClusterView: FC<{ details: ClusterDetailsModel }> = ({
         </DescriptionListGroup>
       </DescriptionList>
     </GridItem>
-    <GridItem md={4} span={12}>
+    <GridItem md={4}>
       <Card isFullHeight>
         <CardTitle>Core infrastructure</CardTitle>
         <CardBody>
@@ -145,7 +145,7 @@ const DetailedClusterView: FC<{ details: ClusterDetailsModel }> = ({
         </CardBody>
       </Card>
     </GridItem>
-    <GridItem md={4} span={12}>
+    <GridItem md={4}>
       <Card isFullHeight>
         <CardTitle>vSAN capabilities</CardTitle>
         <CardBody>
@@ -153,7 +153,7 @@ const DetailedClusterView: FC<{ details: ClusterDetailsModel }> = ({
         </CardBody>
       </Card>
     </GridItem>
-    <GridItem md={4} span={12}>
+    <GridItem md={4}>
       <Card isFullHeight>
         <CardTitle>Network topology</CardTitle>
         <CardBody>

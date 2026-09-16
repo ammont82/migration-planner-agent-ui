@@ -5,12 +5,20 @@ import type {
   VMs,
 } from "@openshift-migration-advisor/agent-sdk";
 import {
+  buildClusterDetailRows,
+  buildClusterDetails,
+  buildInfrastructureSummary,
+  HostPowerStates,
+  InfrastructureSummary,
   OSDistribution,
   type OSDistributionEntry,
+  VCenterClusterDetails,
+  VmPowerStates,
 } from "@openshift-migration-advisor/shared-components";
 import { Gallery, GalleryItem, Grid, GridItem } from "@patternfly/react-core";
 import { InboxIcon } from "@patternfly/react-icons";
 import type React from "react";
+import { useMemo } from "react";
 import { AppEmptyState } from "../../../../common/components";
 import type { NavigateToVMFilters } from "../VirtualMachinesTab/vmNavigation";
 import { ClustersOverview } from "./ClustersOverview";
@@ -29,6 +37,8 @@ interface DashboardProps {
   vms: VMs;
   isExportMode?: boolean;
   clusters?: { [key: string]: InventoryData };
+  vcenterVersion?: string;
+  vcenterId?: string;
   isAggregateView?: boolean;
   clusterFound?: boolean;
   onConcernClick?: (concernLabel: string) => void;
@@ -42,6 +52,8 @@ export const Dashboard: React.FC<DashboardProps> = ({
   vms,
   isExportMode,
   clusters,
+  vcenterVersion,
+  vcenterId,
   isAggregateView = true,
   clusterFound = true,
   onConcernClick,
@@ -75,6 +87,29 @@ export const Dashboard: React.FC<DashboardProps> = ({
         {} as Record<string, OSDistributionEntry>,
       );
 
+  const infrastructureSummary = useMemo(
+    () =>
+      buildInfrastructureSummary({
+        infra,
+        vcenterVersion,
+        vcenterId,
+        clusters,
+      }),
+    [infra, vcenterVersion, vcenterId, clusters],
+  );
+
+  const clusterRows = useMemo(
+    () => buildClusterDetailRows(clusters),
+    [clusters],
+  );
+
+  const clusterDetails = useMemo(() => {
+    if (isAggregateView || !clusters) {
+      return undefined;
+    }
+    return buildClusterDetails(Object.values(clusters)[0]);
+  }, [clusters, isAggregateView]);
+
   if (!clusterFound && !isAggregateView) {
     return (
       <AppEmptyState
@@ -88,7 +123,37 @@ export const Dashboard: React.FC<DashboardProps> = ({
 
   return (
     <Grid hasGutter>
-      <GridItem span={12} data-export-block={isExportMode ? "2" : undefined}>
+      <GridItem data-export-block={isExportMode ? "1" : undefined}>
+        <InfrastructureSummary summary={infrastructureSummary} />
+      </GridItem>
+
+      <GridItem data-export-block={isExportMode ? "1a" : undefined}>
+        <VCenterClusterDetails
+          isAggregateView={isAggregateView}
+          rows={clusterRows}
+          details={clusterDetails}
+          isExportMode={isExportMode}
+        />
+      </GridItem>
+
+      <GridItem data-export-block={isExportMode ? "1b" : undefined}>
+        <Gallery hasGutter minWidths={{ default: "40%" }}>
+          <GalleryItem>
+            <HostPowerStates
+              hostPowerStates={infra.hostPowerStates}
+              isExportMode={isExportMode}
+            />
+          </GalleryItem>
+          <GalleryItem>
+            <VmPowerStates
+              powerStates={vms.powerStates}
+              isExportMode={isExportMode}
+            />
+          </GalleryItem>
+        </Gallery>
+      </GridItem>
+
+      <GridItem data-export-block={isExportMode ? "2" : undefined}>
         <Gallery hasGutter minWidths={{ default: "40%" }}>
           <GalleryItem>
             <VMMigrationStatus
@@ -110,7 +175,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
         </Gallery>
       </GridItem>
 
-      <GridItem span={12} data-export-block={isExportMode ? "3" : undefined}>
+      <GridItem data-export-block={isExportMode ? "3" : undefined}>
         <Gallery hasGutter minWidths={{ default: "40%" }}>
           <GalleryItem>
             <CpuAndMemoryOverview
@@ -137,7 +202,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
       </GridItem>
 
       {isAggregateView ? (
-        <GridItem span={12} data-export-block={isExportMode ? "4" : undefined}>
+        <GridItem data-export-block={isExportMode ? "4" : undefined}>
           <Gallery hasGutter minWidths={{ default: "300px", md: "45%" }}>
             <GalleryItem>
               <ClustersOverview
@@ -152,7 +217,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
           </Gallery>
         </GridItem>
       ) : (
-        <GridItem span={12} data-export-block={isExportMode ? "4" : undefined}>
+        <GridItem data-export-block={isExportMode ? "4" : undefined}>
           <Gallery hasGutter minWidths={{ default: "300px", md: "45%" }}>
             <GalleryItem>
               <HostsOverview hosts={infra.hosts} isExportMode={isExportMode} />
@@ -169,7 +234,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
         </GridItem>
       )}
       {isAggregateView && (
-        <GridItem span={12} data-export-block={isExportMode ? "4a" : undefined}>
+        <GridItem data-export-block={isExportMode ? "4a" : undefined}>
           <Gallery hasGutter minWidths={{ default: "300px", md: "45%" }}>
             <GalleryItem>
               <NetworkOverview
@@ -183,7 +248,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
         </GridItem>
       )}
 
-      <GridItem span={12} data-export-block={isExportMode ? "5" : undefined}>
+      <GridItem data-export-block={isExportMode ? "5" : undefined}>
         <Gallery hasGutter minWidths={{ default: "300px", md: "45%" }}>
           <GalleryItem>
             <WarningsTable
