@@ -8,6 +8,7 @@ Includes:
 - Guest OS support-tier helpers and badges
 - Report chart primitives (`MigrationDonutChart`)
 - Operating Systems distribution card
+- Infrastructure summary, vCenter cluster details, and host/VM power-state cards
 
 ## Installation
 
@@ -23,10 +24,15 @@ npm install @openshift-migration-advisor/shared-components
 
 ```tsx
 import {
+  buildInfrastructureSummary,
+  HostPowerStates,
+  InfrastructureSummary,
   MigrationDonutChart,
   OSDistribution,
   SupportTierBadge,
   TextInputFormGroup,
+  VCenterClusterDetails,
+  VmPowerStates,
 } from "@openshift-migration-advisor/shared-components";
 ```
 

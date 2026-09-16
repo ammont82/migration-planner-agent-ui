@@ -11,6 +11,8 @@ import {
   Select,
   SelectList,
   SelectOption,
+  Stack,
+  StackItem,
   Toolbar,
   ToolbarContent,
   ToolbarItem,
@@ -36,22 +38,9 @@ import {
   useOsBarChartViewModel,
 } from "./useOsBarChartViewModel.js";
 
-const filterToolbarStyle = css`
-  padding-left: 0;
-  padding-right: 0;
-`;
-
-const filterItemStyle = css`
-  flex: 1 1 0;
-  min-width: 0;
-`;
-
-const vmsColumnStyle = css`
-  text-align: right;
-`;
-
 const tableScrollStyle = css`
   overflow: auto;
+  max-height: 350px;
 `;
 
 interface OSDistributionProps {
@@ -106,9 +95,9 @@ export const OSBarChart: FC<OSBarChartProps> = ({
   return (
     <>
       {!isExportMode ? (
-        <Toolbar className={filterToolbarStyle}>
+        <Toolbar hasNoPadding>
           <ToolbarContent>
-            <ToolbarItem className={filterItemStyle}>
+            <ToolbarItem>
               <SearchInput
                 placeholder="Filter by OS"
                 value={vm.osFilter}
@@ -117,7 +106,7 @@ export const OSBarChart: FC<OSBarChartProps> = ({
                 aria-label="Filter operating systems by name"
               />
             </ToolbarItem>
-            <ToolbarItem className={filterItemStyle}>
+            <ToolbarItem>
               <Select
                 isOpen={vm.isTierSelectOpen}
                 selected={vm.tierFilter}
@@ -128,7 +117,7 @@ export const OSBarChart: FC<OSBarChartProps> = ({
                     ref={toggleRef}
                     isExpanded={vm.isTierSelectOpen}
                     onClick={vm.toggleTierSelectOpen}
-                    style={{ width: "100%" }}
+                    isFullWidth
                   >
                     {vm.tierFilterLabel}
                   </MenuToggle>
@@ -151,56 +140,60 @@ export const OSBarChart: FC<OSBarChartProps> = ({
         </Toolbar>
       ) : null}
 
-      {vm.showUpgradeNotice ? <OsUpgradeNotice /> : null}
-
-      <div
-        className={isExportMode ? undefined : tableScrollStyle}
-        style={isExportMode ? undefined : { maxHeight: "350px" }}
-      >
-        <Table
-          aria-label="Operating systems"
-          variant="compact"
-          className={tableFullWidthStyle}
-        >
-          <Thead>
-            <Tr>
-              <Th>OS</Th>
-              <Th>Tier</Th>
-              <Th className={vmsColumnStyle}>VMs</Th>
-            </Tr>
-          </Thead>
-          <Tbody>
-            {vm.showNoResults ? (
-              <Tr>
-                <Td colSpan={3}>
-                  <EmptySearchResults title="No matching operating system found" />
-                </Td>
-              </Tr>
-            ) : (
-              vm.filteredRows.map((row) => (
-                <Tr key={row.osName}>
-                  <Td dataLabel="OS">
-                    <OsNameCell
-                      osName={row.osName}
-                      upgradeRecommendation={row.upgradeRecommendation}
-                      isExportMode={isExportMode}
-                    />
-                  </Td>
-                  <Td dataLabel="Tier">
-                    <SupportTierBadge
-                      tier={row.tier}
-                      isExportMode={isExportMode}
-                    />
-                  </Td>
-                  <Td dataLabel="VMs" className={vmsColumnStyle}>
-                    {row.count}
-                  </Td>
+      <Stack hasGutter>
+        {vm.showUpgradeNotice ? (
+          <StackItem>
+            <OsUpgradeNotice />
+          </StackItem>
+        ) : null}
+        <StackItem>
+          <div
+            className={
+              isExportMode
+                ? tableFullWidthStyle
+                : `${tableScrollStyle} ${tableFullWidthStyle}`
+            }
+          >
+            <Table aria-label="Operating systems" variant="compact">
+              <Thead>
+                <Tr>
+                  <Th>OS</Th>
+                  <Th>Tier</Th>
+                  <Th>VMs</Th>
                 </Tr>
-              ))
-            )}
-          </Tbody>
-        </Table>
-      </div>
+              </Thead>
+              <Tbody>
+                {vm.showNoResults ? (
+                  <Tr>
+                    <Td colSpan={3}>
+                      <EmptySearchResults title="No matching operating system found" />
+                    </Td>
+                  </Tr>
+                ) : (
+                  vm.filteredRows.map((row) => (
+                    <Tr key={row.osName}>
+                      <Td dataLabel="OS">
+                        <OsNameCell
+                          osName={row.osName}
+                          upgradeRecommendation={row.upgradeRecommendation}
+                          isExportMode={isExportMode}
+                        />
+                      </Td>
+                      <Td dataLabel="Tier">
+                        <SupportTierBadge
+                          tier={row.tier}
+                          isExportMode={isExportMode}
+                        />
+                      </Td>
+                      <Td dataLabel="VMs">{row.count}</Td>
+                    </Tr>
+                  ))
+                )}
+              </Tbody>
+            </Table>
+          </div>
+        </StackItem>
+      </Stack>
     </>
   );
 };

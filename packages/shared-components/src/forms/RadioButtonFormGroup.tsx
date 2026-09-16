@@ -33,12 +33,19 @@ export default function RadioButtonFormGroup({
   const showError = error && (isTouched || isSubmitted);
 
   return (
-    <FormGroup label={label} isRequired={isRequired} fieldId={id} {...props}>
+    <FormGroup
+      label={label}
+      isRequired={isRequired}
+      fieldId={id}
+      role="radiogroup"
+      isInline
+      {...props}
+    >
       <Controller
         name={name}
         control={methods.control}
         render={({ field }) => (
-          <div style={{ display: "flex", gap: "16px" }} role="radiogroup">
+          <>
             {options.map((option) => (
               <Radio
                 key={option.value}
@@ -50,7 +57,7 @@ export default function RadioButtonFormGroup({
                 onBlur={field.onBlur}
               />
             ))}
-          </div>
+          </>
         )}
       />
       <FormFieldHelperText
