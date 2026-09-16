@@ -1,5 +1,10 @@
-import { css } from "@emotion/css";
-import { Label } from "@patternfly/react-core";
+import {
+  Button,
+  Content,
+  Label,
+  Stack,
+  StackItem,
+} from "@patternfly/react-core";
 import { ExternalLinkAltIcon } from "@patternfly/react-icons";
 import type { FC } from "react";
 import {
@@ -11,67 +16,32 @@ import {
 } from "./osSupportTier.js";
 import PopoverIcon from "./PopoverIcon.js";
 
-const tierListStyle = css`
-  list-style: none;
-  padding: 0;
-  margin: 0;
-  display: flex;
-  flex-direction: column;
-  gap: var(--pf-t--global--spacer--400);
-`;
-
-const tierItemStyle = css`
-  display: flex;
-  flex-direction: column;
-  gap: var(--pf-t--global--spacer--100);
-`;
-
-const tierBadgeStyle = css`
-  width: fit-content;
-  max-width: 100%;
-  align-self: flex-start;
-`;
-
-const tierDescriptionStyle = css`
-  margin: 0;
-  color: var(--pf-t--global--text--color--regular);
-`;
-
-const learnMoreLinkStyle = css`
-  display: inline-flex;
-  align-items: center;
-  gap: var(--pf-t--global--spacer--xs);
-  margin-top: var(--pf-t--global--spacer--400);
-`;
-
 const OsSupportTiersHelpBody: FC = () => (
-  <div>
-    <ul className={tierListStyle}>
-      {ORDERED_SUPPORT_TIERS.map((tier) => (
-        <li key={tier} className={tierItemStyle}>
-          <Label
-            className={tierBadgeStyle}
-            color={getSupportTierBadgeColor(tier)}
-            isCompact
-          >
-            {getSupportTierLegendLabel(tier)}
-          </Label>
-          <p className={tierDescriptionStyle}>
-            {getSupportTierDefinition(tier)}
-          </p>
-        </li>
-      ))}
-    </ul>
-    <a
-      aria-label="Learn more about operating system support tiers"
-      className={learnMoreLinkStyle}
-      href={SUPPORT_TIER_LEARN_MORE_URL}
-      target="_blank"
-      rel="noopener noreferrer"
-    >
-      Learn more <ExternalLinkAltIcon />
-    </a>
-  </div>
+  <Stack hasGutter>
+    {ORDERED_SUPPORT_TIERS.map((tier) => (
+      <StackItem key={tier}>
+        <Label color={getSupportTierBadgeColor(tier)} isCompact>
+          {getSupportTierLegendLabel(tier)}
+        </Label>
+        <Content component="p">{getSupportTierDefinition(tier)}</Content>
+      </StackItem>
+    ))}
+    <StackItem>
+      <Button
+        variant="link"
+        isInline
+        component="a"
+        href={SUPPORT_TIER_LEARN_MORE_URL}
+        target="_blank"
+        rel="noopener noreferrer"
+        icon={<ExternalLinkAltIcon />}
+        iconPosition="end"
+        aria-label="Learn more about operating system support tiers"
+      >
+        Learn more
+      </Button>
+    </StackItem>
+  </Stack>
 );
 
 export const OsSupportTiersHelpPopover: FC = () => (

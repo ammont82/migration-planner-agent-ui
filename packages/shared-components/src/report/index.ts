@@ -17,6 +17,43 @@ export {
   EmptySearchResults,
   type EmptySearchResultsProps,
 } from "./EmptySearchResults.js";
+export {
+  FeatureStatusBadge,
+  type FeatureStatusBadgeProps,
+} from "./FeatureStatusBadge.js";
+export {
+  HostPowerStates,
+  type HostPowerStatesProps,
+} from "./HostPowerStates.js";
+export {
+  InfrastructureSummary,
+  type InfrastructureSummaryProps,
+} from "./InfrastructureSummary.js";
+export type {
+  ClusterDetailRow,
+  ClusterDetailsModel,
+  FeatureStatus,
+  HostCapability,
+  InfrastructureSummaryModel,
+  InventoryCluster,
+  InventoryDatastore,
+  InventoryHost,
+  InventoryInfra,
+  InventoryNetwork,
+  InventoryVms,
+  NetworkLabel,
+} from "./infrastructureSummary.js";
+export {
+  booleanToFeatureStatus,
+  buildClusterDetailRows,
+  buildClusterDetails,
+  buildInfrastructureSummary,
+  countVCenters,
+  formatVSphereVersion,
+  hostCapabilityStatus,
+  visibleNetworks,
+  vsanStatus,
+} from "./infrastructureSummary.js";
 export { OSBarChart, OSDistribution } from "./OSDistribution.js";
 export { OsSupportTiersHelpPopover } from "./OsSupportTiersHelpPopover.js";
 export { OsUpgradeNotice } from "./OsUpgradeNotice.js";
@@ -45,6 +82,17 @@ export {
   SupportTier,
 } from "./osSupportTier.js";
 export { default as PopoverIcon } from "./PopoverIcon.js";
+export {
+  PowerStateCard,
+  type PowerStateCardProps,
+} from "./PowerStateCard.js";
+export type { PowerStateChartModel } from "./powerStates.js";
+export {
+  buildHostPowerStateChart,
+  buildVmPowerStateChart,
+  HOST_POWER_COLORS,
+  VM_POWER_COLORS,
+} from "./powerStates.js";
 export { SupportTierBadge } from "./SupportTierBadge.js";
 export {
   ALL_TIERS_FILTER,
@@ -52,3 +100,11 @@ export {
   type OsTableRow,
   useOsBarChartViewModel,
 } from "./useOsBarChartViewModel.js";
+export {
+  VCenterClusterDetails,
+  type VCenterClusterDetailsProps,
+} from "./VCenterClusterDetails.js";
+export {
+  VmPowerStates,
+  type VmPowerStatesProps,
+} from "./VmPowerStates.js";

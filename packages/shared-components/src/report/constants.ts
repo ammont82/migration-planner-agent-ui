@@ -25,4 +25,6 @@ export const REPORT_CARD_EMPTY_STATE_TITLES = {
   operatingSystems: "Operating system data not collected",
   migrationStatus: "Migration status data not collected",
   issuesBreakdown: "Issues breakdown data not collected",
+  hostPowerStates: "Host power state data not collected",
+  vmPowerStates: "VM power state data not collected",
 } as const;
