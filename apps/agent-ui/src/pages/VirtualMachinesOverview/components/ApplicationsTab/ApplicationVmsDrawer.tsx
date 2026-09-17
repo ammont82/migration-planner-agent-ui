@@ -97,7 +97,13 @@ export const ApplicationVmsDrawer: React.FC<ApplicationVmsDrawerProps> = ({
     isLoading: loadingVms,
     error: queryError,
   } = useGetApplicationDrawerVmsQuery(
-    { applicationName: application.name },
+    {
+      applicationName: application.name,
+      // The application payload is already scoped (fleet vs group). The drawer
+      // used to refetch by application name alone, which pulled in VMs outside
+      // the current group.
+      vmIds: application.vms.map((vm) => vm.id),
+    },
     { skip: !agentApi },
   );
 
