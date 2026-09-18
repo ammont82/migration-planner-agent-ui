@@ -532,6 +532,7 @@ export const GroupDetailPage: React.FC = () => {
                   loading={applicationsLoading}
                   error={applicationsError}
                   agentApi={agentApi}
+                  vmScopeExpression={groupFilter}
                   selectedApplicationName={selectedApplicationName}
                   onClearSelectedApplication={handleClearSelectedApplication}
                   onNavigateToVm={handleNavigateToVm}
