@@ -1,8 +1,5 @@
 import type { DefaultApiInterface } from "../../../../api/agentApi";
-import {
-  combineFilterExpressions,
-  vmIdsToFilterExpression,
-} from "../../../Groups/utils/groupFilters";
+import { combineFilterExpressions } from "../../../Groups/utils/groupFilters";
 import {
   buildVmGroupMembership,
   mergeVmGroupItems,
@@ -18,28 +15,28 @@ export function applicationFilterExpression(applicationName: string): string {
   return `application = '${escapeApplicationFilterValue(applicationName)}'`;
 }
 
+/** Application-name filter, optionally AND-ed with a VM membership scope. */
 export function applicationDrawerByExpression(
   applicationName: string,
-  vmIds?: string[],
+  scopeExpression?: string,
 ): string | undefined {
   return combineFilterExpressions(
     applicationFilterExpression(applicationName),
-    vmIds ? vmIdsToFilterExpression(vmIds) : undefined,
+    scopeExpression,
   );
 }
 
 export async function fetchApplicationDrawerVms(
   agentApi: DefaultApiInterface,
   applicationName: string,
-  vmIds?: string[],
+  scopeExpression?: string,
 ): Promise<VirtualMachineWithGroupItems[]> {
-  if (vmIds && vmIds.length === 0) {
-    return [];
-  }
-
   const [vms, membership] = await Promise.all([
     fetchAllMatchingVms(agentApi, {
-      byExpression: applicationDrawerByExpression(applicationName, vmIds),
+      byExpression: applicationDrawerByExpression(
+        applicationName,
+        scopeExpression,
+      ),
     }),
     buildVmGroupMembership(agentApi),
   ]);

@@ -34,8 +34,8 @@ interface GetVMsArg {
 
 interface GetApplicationDrawerVmsArg {
   applicationName: string;
-  /** When set, only these VMs are returned (e.g. group-scoped application lists). */
-  vmIds?: string[];
+  /** Optional VM membership filter (e.g. a group's `filter`). Omitted in the fleet view. */
+  scopeExpression?: string;
 }
 
 /** A single VM's detail record with its (optional) rightsizing utilization. */
@@ -186,9 +186,9 @@ export const vmsEndpoints = agentApiSlice.injectEndpoints({
       GetApplicationDrawerVmsArg
     >({
       query:
-        ({ applicationName, vmIds }) =>
+        ({ applicationName, scopeExpression }) =>
         (sdk) =>
-          fetchApplicationDrawerVms(sdk, applicationName, vmIds),
+          fetchApplicationDrawerVms(sdk, applicationName, scopeExpression),
       providesTags: [
         { type: "Vms", id: "LIST" },
         "VmLabels",
