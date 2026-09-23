@@ -639,6 +639,7 @@ export function useVMTableLogic({
     name: "name",
     vCenterState: "vCenterState",
     cluster: "cluster",
+    datacenter: "datacenter",
     cpuUsage: "cpuUsage",
     ramUsage: "ramUsage",
     diskUsage: "diskUsage",

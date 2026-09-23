@@ -29,6 +29,7 @@ export const BACKEND_SORTABLE_COLUMNS = [
   "name",
   "vCenterState",
   "cluster",
+  "datacenter",
   "cpuUsage",
   "ramUsage",
   "diskUsage",

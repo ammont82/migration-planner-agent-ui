@@ -1,5 +1,17 @@
 import { describe, expect, it } from "vitest";
-import { diskSizeRanges, parseDiskTierLabelToRange } from "./vmTableShared";
+import {
+  diskSizeRanges,
+  isBackendSortableColumn,
+  isSortableColumn,
+  parseDiskTierLabelToRange,
+} from "./vmTableShared";
+
+describe("sortable columns", () => {
+  it("treats datacenter as a backend-sortable column", () => {
+    expect(isBackendSortableColumn("datacenter")).toBe(true);
+    expect(isSortableColumn("datacenter")).toBe(true);
+  });
+});
 
 describe("diskSizeRanges", () => {
   it("matches GiB/TiB tiers used by inventory summaries", () => {
