@@ -1,7 +1,10 @@
 import { css } from "@emotion/css";
 import {
+  ChartHeaderActions,
+  chartExportRootStyle,
   dashboardStyles,
   MigrationDonutChart,
+  useRegisterChart,
 } from "@openshift-migration-advisor/shared-components";
 import {
   Card,
@@ -31,7 +34,6 @@ interface CpuAndMemoryOverviewProps {
   memoryTierDistribution?: Record<string, number>;
   memoryTotalGB?: number;
   cpuTotalCores?: number;
-  isExportMode?: boolean;
   onNavigateToVMFilters?: NavigateToVMFilters;
 }
 
@@ -58,7 +60,6 @@ export const CpuAndMemoryOverview: React.FC<CpuAndMemoryOverviewProps> = ({
   memoryTierDistribution = {},
   memoryTotalGB,
   cpuTotalCores,
-  isExportMode = false,
   onNavigateToVMFilters,
 }) => {
   const navigateToVMs = useChartDrillDown(onNavigateToVMFilters);
@@ -137,34 +138,34 @@ export const CpuAndMemoryOverview: React.FC<CpuAndMemoryOverviewProps> = ({
     navigateToVMs({});
   };
 
+  const chartId = "cpu-memory-overview";
+  const chartTitle =
+    viewMode === "memoryTiers"
+      ? "CPU & memory — Memory size tiers"
+      : "CPU & memory — vCPU count tiers";
+  const chartRef = useRegisterChart({ id: chartId, title: chartTitle });
+
   return (
-    <Card
-      className={
-        isExportMode ? dashboardStyles.cardPrint : dashboardStyles.card
-      }
-      id="cpu-memory-overview"
-    >
-      <CardTitle>
-        <Flex
-          justifyContent={{ default: "justifyContentSpaceBetween" }}
-          alignItems={{ default: "alignItemsCenter" }}
-        >
-          <FlexItem>
-            <div>
+    <div ref={chartRef} style={chartExportRootStyle}>
+      <Card className={dashboardStyles.card} id={chartId}>
+        <CardTitle>
+          <Flex
+            justifyContent={{ default: "justifyContentSpaceBetween" }}
+            alignItems={{ default: "alignItemsCenter" }}
+          >
+            <FlexItem>
               <div>
-                <DataProcessorIcon /> CPU &amp; memory
-              </div>
-              {!isExportMode && (
+                <div>
+                  <DataProcessorIcon /> CPU &amp; memory
+                </div>
                 <div className={cardSubtitleStyle}>
                   {viewMode === "memoryTiers"
                     ? "Memory size tiers"
                     : "vCPU count tiers"}
                 </div>
-              )}
-            </div>
-          </FlexItem>
-          {!isExportMode && (
-            <FlexItem>
+              </div>
+            </FlexItem>
+            <ChartHeaderActions chartId={chartId} title={chartTitle}>
               <Dropdown
                 isOpen={isDropdownOpen}
                 onSelect={(_event, value) => {
@@ -195,53 +196,51 @@ export const CpuAndMemoryOverview: React.FC<CpuAndMemoryOverviewProps> = ({
                   </DropdownItem>
                 </DropdownList>
               </Dropdown>
-            </FlexItem>
+            </ChartHeaderActions>
+          </Flex>
+        </CardTitle>
+        <CardBody className={dashboardStyles.cardBodyScrollable}>
+          {activeSlices.length === 0 ? (
+            <AppEmptyState
+              titleText="No data available"
+              icon={InboxIcon}
+              variant={EmptyStateVariant.xs}
+              wrapInBullseye={false}
+            />
+          ) : (
+            <MigrationDonutChart
+              data={activeSlices}
+              height={300}
+              width={420}
+              donutThickness={18}
+              titleFontSize={34}
+              legend={legend}
+              title={`${totalVMs} VMs`}
+              subTitle={
+                viewMode === "memoryTiers"
+                  ? typeof memoryTotalGB === "number"
+                    ? `${memoryTotalGB.toLocaleString()} GB`
+                    : undefined
+                  : typeof cpuTotalCores === "number"
+                    ? `${cpuTotalCores.toLocaleString()} Cores`
+                    : undefined
+              }
+              subTitleColor="#9a9da0"
+              legendLabelFormatter={({ x, countDisplay }) =>
+                `${x} (${countDisplay})`
+              }
+              tooltipLabelFormatter={({ datum, percent }) =>
+                `${datum.countDisplay}\n${percent.toFixed(1)}%`
+              }
+              onItemClick={
+                viewMode === "memoryTiers" ? handleMemoryTierClick : undefined
+              }
+              onTitleClick={handleTitleClick}
+            />
           )}
-        </Flex>
-      </CardTitle>
-      <CardBody className={dashboardStyles.cardBodyScrollable}>
-        {activeSlices.length === 0 ? (
-          <AppEmptyState
-            titleText="No data available"
-            icon={InboxIcon}
-            variant={EmptyStateVariant.xs}
-            wrapInBullseye={false}
-          />
-        ) : (
-          <MigrationDonutChart
-            data={activeSlices}
-            height={300}
-            width={420}
-            donutThickness={18}
-            titleFontSize={34}
-            legend={legend}
-            title={`${totalVMs} VMs`}
-            subTitle={
-              viewMode === "memoryTiers"
-                ? typeof memoryTotalGB === "number"
-                  ? `${memoryTotalGB.toLocaleString()} GB`
-                  : undefined
-                : typeof cpuTotalCores === "number"
-                  ? `${cpuTotalCores.toLocaleString()} Cores`
-                  : undefined
-            }
-            subTitleColor="#9a9da0"
-            legendLabelFormatter={({ x, countDisplay }) =>
-              `${x} (${countDisplay})`
-            }
-            tooltipLabelFormatter={({ datum, percent }) =>
-              `${datum.countDisplay}\n${percent.toFixed(1)}%`
-            }
-            onItemClick={
-              !isExportMode && viewMode === "memoryTiers"
-                ? handleMemoryTierClick
-                : undefined
-            }
-            onTitleClick={!isExportMode ? handleTitleClick : undefined}
-          />
-        )}
-      </CardBody>
-    </Card>
+        </CardBody>
+      </Card>
+    </div>
   );
 };
 

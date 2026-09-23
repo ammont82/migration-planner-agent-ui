@@ -1,6 +1,9 @@
 import {
+  ChartHeaderActions,
+  chartExportRootStyle,
   dashboardStyles,
   MigrationDonutChart,
+  useRegisterChart,
 } from "@openshift-migration-advisor/shared-components";
 import {
   Card,
@@ -45,8 +48,6 @@ interface StorageOverviewProps {
   diskTypes?: Record<string, DiskTierData>;
   totalVMs?: number;
   totalWithSharedDisks?: number;
-  isExportMode?: boolean;
-  exportAllViews?: boolean;
   onNavigateToVMFilters?: NavigateToVMFilters;
 }
 
@@ -161,13 +162,11 @@ const getContrastColor = (hexColor: string): string => {
 interface DiskTypeBarChartProps {
   data: Array<{ name: string; count: number }>;
   colors: string[];
-  isExportMode?: boolean;
 }
 
 const DiskTypeBarChart: React.FC<DiskTypeBarChartProps> = ({
   data,
   colors,
-  isExportMode = false,
 }) => {
   const maxCount = useMemo(() => {
     return data.length > 0 ? Math.max(...data.map((d) => d.count)) : 0;
@@ -192,7 +191,7 @@ const DiskTypeBarChart: React.FC<DiskTypeBarChartProps> = ({
           alignItems={{ default: "alignItemsFlexEnd" }}
           justifyContent={{ default: "justifyContentCenter" }}
           spaceItems={{ default: "spaceItemsMd" }}
-          style={{ height: isExportMode ? "180px" : "250px", width: "100%" }}
+          style={{ height: "250px", width: "100%" }}
         >
           {data.map((item, index) => {
             const heightPercentage =
@@ -211,7 +210,7 @@ const DiskTypeBarChart: React.FC<DiskTypeBarChartProps> = ({
               >
                 <FlexItem
                   style={{
-                    height: isExportMode ? "140px" : "200px",
+                    height: "200px",
                     display: "flex",
                     alignItems: "flex-end",
                     width: "100%",
@@ -261,15 +260,10 @@ const DiskTypeBarChart: React.FC<DiskTypeBarChartProps> = ({
           })}
         </Flex>
       </div>
-      {!isExportMode && (
-        <Content
-          component="small"
-          className={dashboardStyles.storageTotalsNote}
-        >
-          Totals may exceed the unique VM count because individual VMs can have
-          multiple disk types
-        </Content>
-      )}
+      <Content component="small" className={dashboardStyles.storageTotalsNote}>
+        Totals may exceed the unique VM count because individual VMs can have
+        multiple disk types
+      </Content>
     </>
   );
 };
@@ -279,8 +273,6 @@ export const StorageOverview: React.FC<StorageOverviewProps> = ({
   diskTypes = {},
   totalVMs,
   totalWithSharedDisks,
-  isExportMode = false,
-  exportAllViews = false,
   onNavigateToVMFilters,
 }) => {
   const navigateToVMs = useChartDrillDown(onNavigateToVMFilters);
@@ -352,22 +344,6 @@ export const StorageOverview: React.FC<StorageOverviewProps> = ({
     ];
   }, [totalVMs, totalWithSharedDisks]);
 
-  const chartDataForVmCount = useMemo(() => {
-    if (!exportAllViews || !diskSizeTier) return [];
-    return buildTierChartData(diskSizeTier, TIER_CONFIG, (tier) => {
-      const count = tier?.vmCount || 0;
-      return { count, countDisplay: `${count}` };
-    });
-  }, [exportAllViews, diskSizeTier]);
-
-  const chartDataForTotalSize = useMemo(() => {
-    if (!exportAllViews || !diskSizeTier) return [];
-    return buildTierChartData(diskSizeTier, TIER_CONFIG, (tier) => {
-      const count = tier?.totalSizeTB || 0;
-      return { count, countDisplay: `${count.toFixed(2)}` };
-    });
-  }, [exportAllViews, diskSizeTier]);
-
   const tierLegend = useMemo(() => {
     const legendMap: Record<string, string> = {};
     chartData.forEach((slice, idx) => {
@@ -376,24 +352,6 @@ export const StorageOverview: React.FC<StorageOverviewProps> = ({
     });
     return legendMap;
   }, [chartData]);
-
-  const tierLegendForVmCount = useMemo(() => {
-    const legendMap: Record<string, string> = {};
-    chartDataForVmCount.forEach((slice, idx) => {
-      legendMap[slice.legendCategory] =
-        COLOR_PALETTE[idx % COLOR_PALETTE.length];
-    });
-    return legendMap;
-  }, [chartDataForVmCount]);
-
-  const tierLegendForTotalSize = useMemo(() => {
-    const legendMap: Record<string, string> = {};
-    chartDataForTotalSize.forEach((slice, idx) => {
-      legendMap[slice.legendCategory] =
-        COLOR_PALETTE[idx % COLOR_PALETTE.length];
-    });
-    return legendMap;
-  }, [chartDataForTotalSize]);
 
   const commonDonutProps = useMemo(
     () => ({
@@ -445,22 +403,26 @@ export const StorageOverview: React.FC<StorageOverviewProps> = ({
     navigateToVMs({});
   };
 
+  const chartId = "storage-overview";
+  const chartTitle = `Storage — ${VIEW_MODE_LABELS[viewMode]}`;
+  const chartRef = useRegisterChart({ id: chartId, title: chartTitle });
+
   return (
-    <Card
-      className={`${isExportMode ? dashboardStyles.cardPrint : dashboardStyles.card} ${isExportMode ? dashboardStyles.storageCardOverflowVisible : dashboardStyles.storageCardOverflowHidden}`}
-      id="storage-overview"
-    >
-      <CardTitle>
-        <Flex
-          justifyContent={{ default: "justifyContentSpaceBetween" }}
-          alignItems={{ default: "alignItemsCenter" }}
-          className={dashboardStyles.storageFlexFullWidth}
-        >
-          <FlexItem>
-            <DatabaseIcon /> Disks
-          </FlexItem>
-          {!isExportMode && (
+    <div ref={chartRef} style={chartExportRootStyle}>
+      <Card
+        className={`${dashboardStyles.card} ${dashboardStyles.storageCardOverflowHidden}`}
+        id={chartId}
+      >
+        <CardTitle>
+          <Flex
+            justifyContent={{ default: "justifyContentSpaceBetween" }}
+            alignItems={{ default: "alignItemsCenter" }}
+            className={dashboardStyles.storageFlexFullWidth}
+          >
             <FlexItem>
+              <DatabaseIcon /> Disks
+            </FlexItem>
+            <ChartHeaderActions chartId={chartId} title={chartTitle}>
               <Dropdown
                 isOpen={isDropdownOpen}
                 onSelect={onSelect}
@@ -501,17 +463,14 @@ export const StorageOverview: React.FC<StorageOverviewProps> = ({
                   </DropdownItem>
                 </DropdownList>
               </Dropdown>
-            </FlexItem>
-          )}
-        </Flex>
-      </CardTitle>
-      <CardBody className={dashboardStyles.cardBodyScrollable}>
-        {!isExportMode || !exportAllViews ? (
-          viewMode === "vmCountByDiskType" ? (
+            </ChartHeaderActions>
+          </Flex>
+        </CardTitle>
+        <CardBody className={dashboardStyles.cardBodyScrollable}>
+          {viewMode === "vmCountByDiskType" ? (
             <DiskTypeBarChart
               data={diskTypeChartData}
               colors={DISK_TYPE_BAR_COLORS}
-              isExportMode={isExportMode}
             />
           ) : viewMode === "sharedDisks" ? (
             sharedDisksChartData && totalVMs !== undefined ? (
@@ -572,105 +531,16 @@ export const StorageOverview: React.FC<StorageOverviewProps> = ({
                 `${datum.x}: ${datum.countDisplay}\n${percent.toFixed(1)}%`
               }
               onItemClick={
-                !isExportMode &&
-                (viewMode === "vmCount" || viewMode === "totalSize")
+                viewMode === "vmCount" || viewMode === "totalSize"
                   ? handleDiskTierClick
                   : undefined
               }
-              onTitleClick={!isExportMode ? handleTitleClick : undefined}
+              onTitleClick={handleTitleClick}
             />
-          )
-        ) : (
-          <>
-            <div className={dashboardStyles.storageExportSectionMargin}>
-              <div className={dashboardStyles.storageExportSectionTitle}>
-                {VIEW_MODE_LABELS.vmCountByDiskType}
-              </div>
-              <DiskTypeBarChart
-                data={diskTypeChartData}
-                colors={DISK_TYPE_BAR_COLORS}
-                isExportMode={isExportMode}
-              />
-            </div>
-            <div className={dashboardStyles.storageExportSectionMargin}>
-              <div className={dashboardStyles.storageExportSectionTitle}>
-                {VIEW_MODE_LABELS.vmCount}
-              </div>
-              {chartDataForVmCount.length === 0 ? (
-                <AppEmptyState
-                  titleText="No data available"
-                  icon={InboxIcon}
-                  variant={EmptyStateVariant.xs}
-                  wrapInBullseye={false}
-                />
-              ) : (
-                <MigrationDonutChart
-                  {...commonDonutProps}
-                  data={chartDataForVmCount.map((item) => ({
-                    ...item,
-                    countDisplay: `${item.countDisplay} VMs`,
-                  }))}
-                  legend={tierLegendForVmCount}
-                  title={`${totals.totalVMs} VMs`}
-                  subTitle={`${totals.totalSize.toFixed(2)} TB`}
-                  tooltipLabelFormatter={({ datum, percent }) =>
-                    `${datum.x}: ${datum.countDisplay}\n${percent.toFixed(1)}%`
-                  }
-                />
-              )}
-            </div>
-            <div className={dashboardStyles.storageExportSectionMargin}>
-              <div className={dashboardStyles.storageExportSectionTitle}>
-                {VIEW_MODE_LABELS.totalSize}
-              </div>
-              {chartDataForTotalSize.length === 0 ? (
-                <AppEmptyState
-                  titleText="No data available"
-                  icon={InboxIcon}
-                  variant={EmptyStateVariant.xs}
-                  wrapInBullseye={false}
-                />
-              ) : (
-                <MigrationDonutChart
-                  {...commonDonutProps}
-                  data={chartDataForTotalSize.map((item) => ({
-                    ...item,
-                    countDisplay: `${item.countDisplay} TB`,
-                  }))}
-                  legend={tierLegendForTotalSize}
-                  title={`${totals.totalSize.toFixed(2)} TB`}
-                  subTitle={`${totals.totalVMs} VMs`}
-                  tooltipLabelFormatter={({ datum, percent }) =>
-                    `${datum.x}: ${datum.countDisplay}\n${percent.toFixed(1)}%`
-                  }
-                />
-              )}
-            </div>
-            {sharedDisksChartData && totalVMs !== undefined && (
-              <div>
-                <div className={dashboardStyles.storageExportSectionTitle}>
-                  {VIEW_MODE_LABELS.sharedDisks}
-                </div>
-                <MigrationDonutChart
-                  {...commonDonutProps}
-                  data={sharedDisksChartData.map((item) => ({
-                    ...item,
-                    countDisplay: `${item.countDisplay} VMs`,
-                  }))}
-                  customColors={SHARED_DISKS_COLORS}
-                  title={`${totalVMs} VMs`}
-                  subTitle={`${totalWithSharedDisks ?? 0} with shared disks`}
-                  marginLeft="25%"
-                  tooltipLabelFormatter={({ datum, percent }) =>
-                    `${datum.x}: ${datum.countDisplay}\n${percent.toFixed(1)}%`
-                  }
-                />
-              </div>
-            )}
-          </>
-        )}
-      </CardBody>
-    </Card>
+          )}
+        </CardBody>
+      </Card>
+    </div>
   );
 };
 

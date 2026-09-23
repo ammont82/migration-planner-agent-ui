@@ -1,9 +1,12 @@
 import type { IssuesBreakdown } from "@openshift-migration-advisor/agent-sdk";
 import {
+  ChartHeaderActions,
   chartColorFailure,
   chartColorSuccess,
+  chartExportRootStyle,
   dashboardStyles,
   MigrationDonutChart,
+  useRegisterChart,
 } from "@openshift-migration-advisor/shared-components";
 import {
   Card,
@@ -34,7 +37,6 @@ interface VmMigrationStatusProps {
     nonMigratable: number;
   };
   issuesBreakdown?: IssuesBreakdown;
-  isExportMode?: boolean;
   onNavigateToVMFilters?: NavigateToVMFilters;
 }
 
@@ -70,7 +72,6 @@ const categoryColors: Record<string, string> = {
 export const VMMigrationStatus: React.FC<VmMigrationStatusProps> = ({
   data,
   issuesBreakdown,
-  isExportMode = false,
   onNavigateToVMFilters,
 }) => {
   const navigateToVMs = useChartDrillDown(onNavigateToVMFilters);
@@ -118,8 +119,6 @@ export const VMMigrationStatus: React.FC<VmMigrationStatusProps> = ({
   }, [breakdownData]);
 
   const handleItemClick = (item: { name: string }) => {
-    if (isExportMode) return;
-
     if (viewMode === "issuesVsNoIssues") {
       const migrationReadiness =
         item.name === "Migratable" ? ["ready"] : ["not-ready"];
@@ -128,36 +127,33 @@ export const VMMigrationStatus: React.FC<VmMigrationStatusProps> = ({
   };
 
   const handleBreakdownClick = (category: string) => {
-    if (isExportMode) return;
     navigateToVMs({
       concernCategories: [category],
     });
   };
 
   const handleTitleClick = () => {
-    if (isExportMode) return;
     navigateToVMs({});
   };
 
   const totalVMs = data.migratable + data.nonMigratable;
 
+  const chartId = "vm-migration-status";
+  const chartTitle = `VM migration status — ${viewModeLabels[viewMode]}`;
+  const chartRef = useRegisterChart({ id: chartId, title: chartTitle });
+
   return (
-    <Card
-      className={
-        isExportMode ? dashboardStyles.cardPrint : dashboardStyles.card
-      }
-      id="vm-migration-status"
-    >
-      <CardTitle>
-        <Flex
-          alignItems={{ default: "alignItemsCenter" }}
-          justifyContent={{ default: "justifyContentSpaceBetween" }}
-        >
-          <FlexItem>
-            <VirtualMachineIcon /> VM Migration Status
-          </FlexItem>
-          {!isExportMode && (
+    <div ref={chartRef} style={chartExportRootStyle}>
+      <Card className={dashboardStyles.card} id={chartId}>
+        <CardTitle>
+          <Flex
+            alignItems={{ default: "alignItemsCenter" }}
+            justifyContent={{ default: "justifyContentSpaceBetween" }}
+          >
             <FlexItem>
+              <VirtualMachineIcon /> VM Migration Status
+            </FlexItem>
+            <ChartHeaderActions chartId={chartId} title={chartTitle}>
               <Dropdown
                 isOpen={isDropdownOpen}
                 onOpenChange={setIsDropdownOpen}
@@ -193,71 +189,69 @@ export const VMMigrationStatus: React.FC<VmMigrationStatusProps> = ({
                   </DropdownItem>
                 </DropdownList>
               </Dropdown>
-            </FlexItem>
-          )}
-        </Flex>
-      </CardTitle>
-      <CardBody className={dashboardStyles.cardBodyScrollable}>
-        {viewMode === "issuesVsNoIssues" ? (
-          <MigrationDonutChart
-            data={donutData}
-            legend={legend}
-            height={300}
-            width={420}
-            donutThickness={18}
-            padAngle={1}
-            title={`${totalVMs}`}
-            subTitle="VMs"
-            subTitleColor="#9a9da0"
-            titleFontSize={34}
-            legendLabelFormatter={({ x, countDisplay }) =>
-              `${x} (${countDisplay})`
-            }
-            onItemClick={!isExportMode ? handleItemClick : undefined}
-            onTitleClick={!isExportMode ? handleTitleClick : undefined}
-          />
-        ) : (
-          <div>
-            <div className={dashboardStyles.storageChartWrapper}>
-              <Flex
-                direction={{ default: "row" }}
-                alignItems={{ default: "alignItemsFlexEnd" }}
-                justifyContent={{ default: "justifyContentCenter" }}
-                spaceItems={{ default: "spaceItemsMd" }}
-                style={{
-                  height: isExportMode ? "180px" : "250px",
-                  width: "100%",
-                }}
-              >
-                {breakdownData.map((item) => {
-                  const heightPercentage =
-                    maxCount > 0 ? (item.count / maxCount) * 100 : 0;
-                  const minHeightPercentage = item.count > 0 ? 20 : 0;
-                  const finalHeightPercentage = Math.max(
-                    heightPercentage,
-                    minHeightPercentage,
-                  );
-                  const barColor =
-                    categoryColors[item.name] || categoryColors.Critical;
+            </ChartHeaderActions>
+          </Flex>
+        </CardTitle>
+        <CardBody className={dashboardStyles.cardBodyScrollable}>
+          {viewMode === "issuesVsNoIssues" ? (
+            <MigrationDonutChart
+              data={donutData}
+              legend={legend}
+              height={300}
+              width={420}
+              donutThickness={18}
+              padAngle={1}
+              title={`${totalVMs}`}
+              subTitle="VMs"
+              subTitleColor="#9a9da0"
+              titleFontSize={34}
+              legendLabelFormatter={({ x, countDisplay }) =>
+                `${x} (${countDisplay})`
+              }
+              onItemClick={handleItemClick}
+              onTitleClick={handleTitleClick}
+            />
+          ) : (
+            <div>
+              <div className={dashboardStyles.storageChartWrapper}>
+                <Flex
+                  direction={{ default: "row" }}
+                  alignItems={{ default: "alignItemsFlexEnd" }}
+                  justifyContent={{ default: "justifyContentCenter" }}
+                  spaceItems={{ default: "spaceItemsMd" }}
+                  style={{
+                    height: "250px",
+                    width: "100%",
+                  }}
+                >
+                  {breakdownData.map((item) => {
+                    const heightPercentage =
+                      maxCount > 0 ? (item.count / maxCount) * 100 : 0;
+                    const minHeightPercentage = item.count > 0 ? 20 : 0;
+                    const finalHeightPercentage = Math.max(
+                      heightPercentage,
+                      minHeightPercentage,
+                    );
+                    const barColor =
+                      categoryColors[item.name] || categoryColors.Critical;
 
-                  return (
-                    <Flex
-                      key={item.name}
-                      direction={{ default: "column" }}
-                      alignItems={{ default: "alignItemsCenter" }}
-                      spaceItems={{ default: "spaceItemsSm" }}
-                      style={{ flex: "1", maxWidth: "120px" }}
-                    >
-                      <FlexItem
-                        style={{
-                          height: isExportMode ? "140px" : "200px",
-                          display: "flex",
-                          alignItems: "flex-end",
-                          width: "100%",
-                          justifyContent: "center",
-                        }}
+                    return (
+                      <Flex
+                        key={item.name}
+                        direction={{ default: "column" }}
+                        alignItems={{ default: "alignItemsCenter" }}
+                        spaceItems={{ default: "spaceItemsSm" }}
+                        style={{ flex: "1", maxWidth: "120px" }}
                       >
-                        {!isExportMode ? (
+                        <FlexItem
+                          style={{
+                            height: "200px",
+                            display: "flex",
+                            alignItems: "flex-end",
+                            width: "100%",
+                            justifyContent: "center",
+                          }}
+                        >
                           <button
                             type="button"
                             onClick={() => handleBreakdownClick(item.name)}
@@ -273,56 +267,46 @@ export const VMMigrationStatus: React.FC<VmMigrationStatusProps> = ({
                               padding: 0,
                             }}
                           />
-                        ) : (
-                          <div
+                        </FlexItem>
+                        <FlexItem>
+                          <Content
+                            component="small"
                             style={{
-                              width: "60px",
-                              height: `${finalHeightPercentage}%`,
-                              backgroundColor: barColor,
-                              transition: "height 0.3s ease",
-                              borderRadius: "4px 4px 0 0",
+                              fontSize: "12px",
+                              textAlign: "center",
+                              wordBreak: "break-word",
+                              color:
+                                "var(--pf-t--global--text--color--regular)",
                             }}
-                            title={`${item.name}: ${item.count} VMs`}
-                          />
-                        )}
-                      </FlexItem>
-                      <FlexItem>
-                        <Content
-                          component="small"
-                          style={{
-                            fontSize: "12px",
-                            textAlign: "center",
-                            wordBreak: "break-word",
-                            color: "var(--pf-t--global--text--color--regular)",
-                          }}
-                        >
-                          {item.name}
-                          <br />({item.count} VMs)
-                        </Content>
-                      </FlexItem>
-                    </Flex>
-                  );
-                })}
-              </Flex>
+                          >
+                            {item.name}
+                            <br />({item.count} VMs)
+                          </Content>
+                        </FlexItem>
+                      </Flex>
+                    );
+                  })}
+                </Flex>
+              </div>
+              <div>
+                <Content
+                  component="small"
+                  style={{
+                    fontSize: "12px",
+                    color: "var(--pf-t--global--text--color--subtle)",
+                    marginTop: "16px",
+                    textAlign: "center",
+                    display: "block",
+                  }}
+                >
+                  Totals may exceed the unique VM count because a VM can appear
+                  in multiple categories
+                </Content>
+              </div>
             </div>
-            <div>
-              <Content
-                component="small"
-                style={{
-                  fontSize: "12px",
-                  color: "var(--pf-t--global--text--color--subtle)",
-                  marginTop: "16px",
-                  textAlign: "center",
-                  display: "block",
-                }}
-              >
-                Totals may exceed the unique VM count because a VM can appear in
-                multiple categories
-              </Content>
-            </div>
-          </div>
-        )}
-      </CardBody>
-    </Card>
+          )}
+        </CardBody>
+      </Card>
+    </div>
   );
 };
