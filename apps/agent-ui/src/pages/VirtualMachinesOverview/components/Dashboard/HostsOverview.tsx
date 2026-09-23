@@ -1,8 +1,11 @@
 import { css } from "@emotion/css";
 import type { Host } from "@openshift-migration-advisor/agent-sdk";
 import {
+  ChartHeaderActions,
+  chartExportRootStyle,
   dashboardStyles,
   MigrationDonutChart,
+  useRegisterChart,
 } from "@openshift-migration-advisor/shared-components";
 import {
   Card,
@@ -26,7 +29,6 @@ const styles = {
 
 interface HostsOverviewProps {
   hosts?: Host[];
-  isExportMode?: boolean;
 }
 
 const colorPalette = [
@@ -38,10 +40,7 @@ const colorPalette = [
   "#28a745",
 ];
 
-export const HostsOverview: React.FC<HostsOverviewProps> = ({
-  hosts = [],
-  isExportMode = false,
-}) => {
+export const HostsOverview: React.FC<HostsOverviewProps> = ({ hosts = [] }) => {
   const { slices, legend, totalHosts } = useMemo(() => {
     const countsMap = hosts.reduce(
       (acc, h) => {
@@ -88,60 +87,60 @@ export const HostsOverview: React.FC<HostsOverviewProps> = ({
     return { slices, legend: legendMap, totalHosts: hosts.length };
   }, [hosts]);
 
+  const chartId = "hosts-overview";
+  const chartTitle = "Host distribution by model";
+  const chartRef = useRegisterChart({ id: chartId, title: chartTitle });
+
   return (
-    <Card
-      className={
-        isExportMode ? dashboardStyles.cardPrint : dashboardStyles.card
-      }
-      id="hosts-overview"
-    >
-      <CardTitle>
-        <Flex
-          justifyContent={{ default: "justifyContentSpaceBetween" }}
-          alignItems={{ default: "alignItemsCenter" }}
-        >
-          <FlexItem>
-            <div>
+    <div ref={chartRef} style={chartExportRootStyle}>
+      <Card className={dashboardStyles.card} id={chartId}>
+        <CardTitle>
+          <Flex
+            justifyContent={{ default: "justifyContentSpaceBetween" }}
+            alignItems={{ default: "alignItemsCenter" }}
+          >
+            <FlexItem>
               <div>
-                <ServerIcon /> Host distribution by model
-              </div>
-              {!isExportMode && (
+                <div>
+                  <ServerIcon /> Host distribution by model
+                </div>
                 <div className={styles.cardSubtitle}>Top 5 models</div>
-              )}
-            </div>
-          </FlexItem>
-        </Flex>
-      </CardTitle>
-      <CardBody className={dashboardStyles.cardBodyScrollable}>
-        {slices.length === 0 ? (
-          <AppEmptyState
-            titleText="No data available"
-            icon={InboxIcon}
-            variant={EmptyStateVariant.xs}
-            wrapInBullseye={false}
-          />
-        ) : (
-          <MigrationDonutChart
-            data={slices}
-            height={300}
-            width={420}
-            donutThickness={18}
-            titleFontSize={34}
-            legend={legend}
-            title={`${totalHosts}`}
-            subTitle="Hosts"
-            subTitleColor="#9a9da0"
-            tooltipLabelFormatter={({
-              datum,
-              percent,
-            }: {
-              datum: { countDisplay?: string | number };
-              percent: number;
-            }) => `${datum.countDisplay}\n${percent.toFixed(1)}%`}
-          />
-        )}
-      </CardBody>
-    </Card>
+              </div>
+            </FlexItem>
+            <ChartHeaderActions chartId={chartId} title={chartTitle} />
+          </Flex>
+        </CardTitle>
+        <CardBody className={dashboardStyles.cardBodyScrollable}>
+          {slices.length === 0 ? (
+            <AppEmptyState
+              titleText="No data available"
+              icon={InboxIcon}
+              variant={EmptyStateVariant.xs}
+              wrapInBullseye={false}
+            />
+          ) : (
+            <MigrationDonutChart
+              data={slices}
+              height={300}
+              width={420}
+              donutThickness={18}
+              titleFontSize={34}
+              legend={legend}
+              title={`${totalHosts}`}
+              subTitle="Hosts"
+              subTitleColor="#9a9da0"
+              tooltipLabelFormatter={({
+                datum,
+                percent,
+              }: {
+                datum: { countDisplay?: string | number };
+                percent: number;
+              }) => `${datum.countDisplay}\n${percent.toFixed(1)}%`}
+            />
+          )}
+        </CardBody>
+      </Card>
+    </div>
   );
 };
 
