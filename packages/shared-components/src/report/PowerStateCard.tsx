@@ -13,8 +13,7 @@ import {
 } from "../charts/MigrationDonutChart.js";
 import { CardEmptyState } from "./CardEmptyState.js";
 import { ChartHeaderActions } from "./ChartDownloadButton.js";
-import { chartExportRootStyle } from "./chartExport.js";
-import { useRegisterChart } from "./chartExportContext.js";
+import { ChartExportSurface } from "./ChartExportSurface.js";
 import { dashboardStyles } from "./dashboardStyles.js";
 
 export interface PowerStateCardProps {
@@ -41,51 +40,47 @@ export const PowerStateCard: FC<PowerStateCardProps> = ({
   subTitle,
   itemsPerRow = 2,
   legendVariant = "html",
-}) => {
-  const chartRef = useRegisterChart({ id, title });
-
-  return (
-    <div ref={chartRef} style={chartExportRootStyle}>
-      <Card className={dashboardStyles.card} id={id}>
-        <CardTitle>
-          <Flex
-            justifyContent={{ default: "justifyContentSpaceBetween" }}
-            alignItems={{ default: "alignItemsCenter" }}
-          >
-            <FlexItem>
-              {icon} {title}
-            </FlexItem>
-            <ChartHeaderActions chartId={id} title={title} />
-          </Flex>
-        </CardTitle>
-        <CardBody>
-          {total === 0 ? (
-            <CardEmptyState title={emptyTitle} />
-          ) : (
-            <MigrationDonutChart
-              legendVariant={legendVariant}
-              data={slices}
-              legend={legend}
-              height={300}
-              width={420}
-              donutThickness={18}
-              padAngle={1}
-              title={`${total}`}
-              subTitle={subTitle}
-              subTitleColor="var(--pf-t--global--text--color--subtle)"
-              titleFontSize={34}
-              labelFontSize={16}
-              itemsPerRow={itemsPerRow}
-              marginLeft="0%"
-              tooltipLabelFormatter={({ datum, percent }) =>
-                `${datum.countDisplay}\n${percent.toFixed(1)}%`
-              }
-            />
-          )}
-        </CardBody>
-      </Card>
-    </div>
-  );
-};
+}) => (
+  <Card className={dashboardStyles.card} id={id}>
+    <CardTitle>
+      <Flex
+        justifyContent={{ default: "justifyContentSpaceBetween" }}
+        alignItems={{ default: "alignItemsCenter" }}
+      >
+        <FlexItem>
+          {icon} {title}
+        </FlexItem>
+        <ChartHeaderActions chartId={id} title={title} />
+      </Flex>
+    </CardTitle>
+    <CardBody>
+      <ChartExportSurface id={id} title={title}>
+        {total === 0 ? (
+          <CardEmptyState title={emptyTitle} />
+        ) : (
+          <MigrationDonutChart
+            legendVariant={legendVariant}
+            data={slices}
+            legend={legend}
+            height={300}
+            width={420}
+            donutThickness={18}
+            padAngle={1}
+            title={`${total}`}
+            subTitle={subTitle}
+            subTitleColor="var(--pf-t--global--text--color--subtle)"
+            titleFontSize={34}
+            labelFontSize={16}
+            itemsPerRow={itemsPerRow}
+            marginLeft="0%"
+            tooltipLabelFormatter={({ datum, percent }) =>
+              `${datum.countDisplay}\n${percent.toFixed(1)}%`
+            }
+          />
+        )}
+      </ChartExportSurface>
+    </CardBody>
+  </Card>
+);
 
 PowerStateCard.displayName = "PowerStateCard";

@@ -1,10 +1,9 @@
 import { css } from "@emotion/css";
 import {
+  ChartExportSurface,
   ChartHeaderActions,
-  chartExportRootStyle,
   dashboardStyles,
   MigrationDonutChart,
-  useRegisterChart,
 } from "@openshift-migration-advisor/shared-components";
 import {
   Card,
@@ -143,63 +142,61 @@ export const CpuAndMemoryOverview: React.FC<CpuAndMemoryOverviewProps> = ({
     viewMode === "memoryTiers"
       ? "CPU & memory — Memory size tiers"
       : "CPU & memory — vCPU count tiers";
-  const chartRef = useRegisterChart({ id: chartId, title: chartTitle });
-
   return (
-    <div ref={chartRef} style={chartExportRootStyle}>
-      <Card className={dashboardStyles.card} id={chartId}>
-        <CardTitle>
-          <Flex
-            justifyContent={{ default: "justifyContentSpaceBetween" }}
-            alignItems={{ default: "alignItemsCenter" }}
-          >
-            <FlexItem>
+    <Card className={dashboardStyles.card} id={chartId}>
+      <CardTitle>
+        <Flex
+          justifyContent={{ default: "justifyContentSpaceBetween" }}
+          alignItems={{ default: "alignItemsCenter" }}
+        >
+          <FlexItem>
+            <div>
               <div>
-                <div>
-                  <DataProcessorIcon /> CPU &amp; memory
-                </div>
-                <div className={cardSubtitleStyle}>
-                  {viewMode === "memoryTiers"
-                    ? "Memory size tiers"
-                    : "vCPU count tiers"}
-                </div>
+                <DataProcessorIcon /> CPU &amp; memory
               </div>
-            </FlexItem>
-            <ChartHeaderActions chartId={chartId} title={chartTitle}>
-              <Dropdown
-                isOpen={isDropdownOpen}
-                onSelect={(_event, value) => {
-                  if (value === "memoryTiers" || value === "vcpuTiers") {
-                    setViewMode(value);
-                  }
-                  setIsDropdownOpen(false);
-                }}
-                onOpenChange={setIsDropdownOpen}
-                toggle={(toggleRef: React.Ref<MenuToggleElement>) => (
-                  <MenuToggle
-                    ref={toggleRef}
-                    onClick={() => setIsDropdownOpen(!isDropdownOpen)}
-                    isExpanded={isDropdownOpen}
-                  >
-                    {viewMode === "memoryTiers"
-                      ? "VM distribution by memory size tier"
-                      : "VM distribution by vCPU count tier"}
-                  </MenuToggle>
-                )}
-              >
-                <DropdownList>
-                  <DropdownItem key="memoryTiers" value="memoryTiers">
-                    VM distribution by memory size tier
-                  </DropdownItem>
-                  <DropdownItem key="vcpuTiers" value="vcpuTiers">
-                    VM distribution by vCPU count tier
-                  </DropdownItem>
-                </DropdownList>
-              </Dropdown>
-            </ChartHeaderActions>
-          </Flex>
-        </CardTitle>
-        <CardBody className={dashboardStyles.cardBodyScrollable}>
+              <div className={cardSubtitleStyle}>
+                {viewMode === "memoryTiers"
+                  ? "Memory size tiers"
+                  : "vCPU count tiers"}
+              </div>
+            </div>
+          </FlexItem>
+          <ChartHeaderActions chartId={chartId} title={chartTitle}>
+            <Dropdown
+              isOpen={isDropdownOpen}
+              onSelect={(_event, value) => {
+                if (value === "memoryTiers" || value === "vcpuTiers") {
+                  setViewMode(value);
+                }
+                setIsDropdownOpen(false);
+              }}
+              onOpenChange={setIsDropdownOpen}
+              toggle={(toggleRef: React.Ref<MenuToggleElement>) => (
+                <MenuToggle
+                  ref={toggleRef}
+                  onClick={() => setIsDropdownOpen(!isDropdownOpen)}
+                  isExpanded={isDropdownOpen}
+                >
+                  {viewMode === "memoryTiers"
+                    ? "VM distribution by memory size tier"
+                    : "VM distribution by vCPU count tier"}
+                </MenuToggle>
+              )}
+            >
+              <DropdownList>
+                <DropdownItem key="memoryTiers" value="memoryTiers">
+                  VM distribution by memory size tier
+                </DropdownItem>
+                <DropdownItem key="vcpuTiers" value="vcpuTiers">
+                  VM distribution by vCPU count tier
+                </DropdownItem>
+              </DropdownList>
+            </Dropdown>
+          </ChartHeaderActions>
+        </Flex>
+      </CardTitle>
+      <CardBody className={dashboardStyles.cardBodyScrollable}>
+        <ChartExportSurface id={chartId} title={chartTitle}>
           {activeSlices.length === 0 ? (
             <AppEmptyState
               titleText="No data available"
@@ -238,9 +235,9 @@ export const CpuAndMemoryOverview: React.FC<CpuAndMemoryOverviewProps> = ({
               onTitleClick={handleTitleClick}
             />
           )}
-        </CardBody>
-      </Card>
-    </div>
+        </ChartExportSurface>
+      </CardBody>
+    </Card>
   );
 };
 

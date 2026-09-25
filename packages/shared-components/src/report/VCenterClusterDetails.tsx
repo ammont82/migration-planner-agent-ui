@@ -18,8 +18,8 @@ import {
 import { Table, Tbody, Td, Th, Thead, Tr } from "@patternfly/react-table";
 import type { FC } from "react";
 import { ChartHeaderActions } from "./ChartDownloadButton.js";
-import { chartExportRootStyle, chartExportScrollProps } from "./chartExport.js";
-import { useRegisterChart } from "./chartExportContext.js";
+import { ChartExportSurface } from "./ChartExportSurface.js";
+import { chartExportScrollProps } from "./chartExport.js";
 import { FeatureStatusBadge } from "./FeatureStatusBadge.js";
 import type {
   ClusterDetailRow,
@@ -201,37 +201,33 @@ export const VCenterClusterDetails: FC<VCenterClusterDetailsProps> = ({
   isAggregateView,
   rows,
   details,
-}) => {
-  const chartRef = useRegisterChart({
-    id: CLUSTER_DETAILS_CHART_ID,
-    title: CLUSTER_DETAILS_TITLE,
-  });
-
-  return (
-    <div ref={chartRef} style={chartExportRootStyle}>
-      <Card isFullHeight id={CLUSTER_DETAILS_CHART_ID}>
-        <CardTitle>
-          <Flex
-            justifyContent={{ default: "justifyContentSpaceBetween" }}
-            alignItems={{ default: "alignItemsCenter" }}
-          >
-            <FlexItem>{CLUSTER_DETAILS_TITLE}</FlexItem>
-            <ChartHeaderActions
-              chartId={CLUSTER_DETAILS_CHART_ID}
-              title={CLUSTER_DETAILS_TITLE}
-            />
-          </Flex>
-        </CardTitle>
-        <CardBody>
-          {isAggregateView || !details ? (
-            <AggregateCluster rows={rows} />
-          ) : (
-            <DetailedClusterView details={details} />
-          )}
-        </CardBody>
-      </Card>
-    </div>
-  );
-};
+}) => (
+  <Card isFullHeight id={CLUSTER_DETAILS_CHART_ID}>
+    <CardTitle>
+      <Flex
+        justifyContent={{ default: "justifyContentSpaceBetween" }}
+        alignItems={{ default: "alignItemsCenter" }}
+      >
+        <FlexItem>{CLUSTER_DETAILS_TITLE}</FlexItem>
+        <ChartHeaderActions
+          chartId={CLUSTER_DETAILS_CHART_ID}
+          title={CLUSTER_DETAILS_TITLE}
+        />
+      </Flex>
+    </CardTitle>
+    <CardBody>
+      <ChartExportSurface
+        id={CLUSTER_DETAILS_CHART_ID}
+        title={CLUSTER_DETAILS_TITLE}
+      >
+        {isAggregateView || !details ? (
+          <AggregateCluster rows={rows} />
+        ) : (
+          <DetailedClusterView details={details} />
+        )}
+      </ChartExportSurface>
+    </CardBody>
+  </Card>
+);
 
 VCenterClusterDetails.displayName = "VCenterClusterDetails";

@@ -1,9 +1,8 @@
 import type { MigrationIssue } from "@openshift-migration-advisor/agent-sdk";
 import {
+  ChartExportSurface,
   ChartHeaderActions,
-  chartExportRootStyle,
   dashboardStyles,
-  useRegisterChart,
 } from "@openshift-migration-advisor/shared-components";
 import {
   Card,
@@ -36,26 +35,25 @@ export const WarningsTable: React.FC<WarningsTableProps> = ({
 
   const chartId = "warnings-table";
   const chartTitle = "Warnings";
-  const chartRef = useRegisterChart({ id: chartId, title: chartTitle });
 
   return (
-    <div ref={chartRef} style={chartExportRootStyle}>
-      <Card className={dashboardStyles.card} id={chartId}>
-        <CardTitle>
-          <Flex
-            justifyContent={{ default: "justifyContentSpaceBetween" }}
-            alignItems={{ default: "alignItemsCenter" }}
-          >
-            <FlexItem>
-              <Icon status="warning">
-                <ExclamationTriangleIcon />
-              </Icon>{" "}
-              Warnings
-            </FlexItem>
-            <ChartHeaderActions chartId={chartId} title={chartTitle} />
-          </Flex>
-        </CardTitle>
-        <CardBody className={dashboardStyles.cardBodyScrollable}>
+    <Card className={dashboardStyles.card} id={chartId}>
+      <CardTitle>
+        <Flex
+          justifyContent={{ default: "justifyContentSpaceBetween" }}
+          alignItems={{ default: "alignItemsCenter" }}
+        >
+          <FlexItem>
+            <Icon status="warning">
+              <ExclamationTriangleIcon />
+            </Icon>{" "}
+            Warnings
+          </FlexItem>
+          <ChartHeaderActions chartId={chartId} title={chartTitle} />
+        </Flex>
+      </CardTitle>
+      <CardBody className={dashboardStyles.cardBodyScrollable}>
+        <ChartExportSurface id={chartId} title={chartTitle}>
           {warnings.length === 0 ? (
             <AppEmptyState
               titleText="No warning found"
@@ -74,8 +72,8 @@ export const WarningsTable: React.FC<WarningsTableProps> = ({
               />
             </div>
           )}
-        </CardBody>
-      </Card>
-    </div>
+        </ChartExportSurface>
+      </CardBody>
+    </Card>
   );
 };

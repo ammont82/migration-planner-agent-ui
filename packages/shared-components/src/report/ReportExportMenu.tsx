@@ -31,6 +31,10 @@ const dropdownListReset = css`
   }
 `;
 
+const menuToggleGap = css`
+  --pf-v6-c-menu-toggle--Gap: var(--pf-t--global--spacer--sm);
+`;
+
 export interface ReportExportMenuProps {
   options: ReportExportOption[];
   isLoading?: boolean;
@@ -55,6 +59,10 @@ export const ReportExportMenu: FC<ReportExportMenuProps> = ({
   return (
     <Dropdown
       isOpen={isDropdownOpen}
+      popperProps={{
+        placement: "bottom-end",
+        preventOverflow: true,
+      }}
       onSelect={() => {
         setIsDropdownOpen(false);
       }}
@@ -71,17 +79,16 @@ export const ReportExportMenu: FC<ReportExportMenuProps> = ({
           variant="secondary"
           isDisabled={isLoading || isDisabled}
           aria-label="Export report options"
-        >
-          {isLoading ? (
-            <>
+          className={menuToggleGap}
+          icon={
+            isLoading ? (
               <Spinner size="sm" aria-hidden="true" />
-              {loadingLabel ?? "Generating..."}
-            </>
-          ) : (
-            <>
-              <DownloadIcon aria-hidden="true" /> {toggleLabel}
-            </>
-          )}
+            ) : (
+              <DownloadIcon aria-hidden="true" />
+            )
+          }
+        >
+          {isLoading ? (loadingLabel ?? "Generating...") : toggleLabel}
         </MenuToggle>
       )}
     >

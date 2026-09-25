@@ -3,11 +3,10 @@ import type {
   VMResourceBreakdown,
 } from "@openshift-migration-advisor/agent-sdk";
 import {
+  ChartExportSurface,
   ChartHeaderActions,
-  chartExportRootStyle,
   dashboardStyles,
   MigrationDonutChart,
-  useRegisterChart,
 } from "@openshift-migration-advisor/shared-components";
 import {
   Card,
@@ -255,65 +254,64 @@ export const NetworkOverview: React.FC<NetworkOverviewProps> = ({
 
   const chartId = "network-overview";
   const chartTitle = `Networks — ${VIEW_MODE_LABELS[viewMode]}`;
-  const chartRef = useRegisterChart({ id: chartId, title: chartTitle });
 
   return (
-    <div ref={chartRef} style={chartExportRootStyle}>
-      <Card
-        className={dashboardStyles.card}
-        id={chartId}
-        style={{ overflow: "hidden" }}
-      >
-        <CardTitle>
-          <Flex
-            justifyContent={{ default: "justifyContentSpaceBetween" }}
-            alignItems={{ default: "alignItemsCenter" }}
-            style={{ width: "100%" }}
-          >
-            <FlexItem>
+    <Card
+      className={dashboardStyles.card}
+      id={chartId}
+      style={{ overflow: "hidden" }}
+    >
+      <CardTitle>
+        <Flex
+          justifyContent={{ default: "justifyContentSpaceBetween" }}
+          alignItems={{ default: "alignItemsCenter" }}
+          style={{ width: "100%" }}
+        >
+          <FlexItem>
+            <div>
               <div>
-                <div>
-                  <TopologyIcon /> Networks
-                </div>
-                {viewMode === "networkDistribution" && (
-                  <div style={{ color: "#6a6e73", fontSize: "0.85rem" }}>
-                    Top 5 networks
-                  </div>
-                )}
+                <TopologyIcon /> Networks
               </div>
-            </FlexItem>
-            <ChartHeaderActions chartId={chartId} title={chartTitle}>
-              <Dropdown
-                isOpen={isDropdownOpen}
-                onSelect={onSelect}
-                onOpenChange={(isOpen: boolean) => setIsDropdownOpen(isOpen)}
-                toggle={(toggleRef: React.Ref<MenuToggleElement>) => (
-                  <MenuToggle
-                    ref={toggleRef}
-                    onClick={onDropdownToggle}
-                    isExpanded={isDropdownOpen}
-                    style={{ minWidth: "250px" }}
-                  >
-                    {VIEW_MODE_LABELS[viewMode]}
-                  </MenuToggle>
-                )}
-              >
-                <DropdownList>
-                  <DropdownItem
-                    key="networkDistribution"
-                    value="networkDistribution"
-                  >
-                    VM distribution by network
-                  </DropdownItem>
-                  <DropdownItem key="nicCount" value="nicCount">
-                    VM distribution by NIC count
-                  </DropdownItem>
-                </DropdownList>
-              </Dropdown>
-            </ChartHeaderActions>
-          </Flex>
-        </CardTitle>
-        <CardBody className={dashboardStyles.cardBodyScrollable}>
+              {viewMode === "networkDistribution" && (
+                <div style={{ color: "#6a6e73", fontSize: "0.85rem" }}>
+                  Top 5 networks
+                </div>
+              )}
+            </div>
+          </FlexItem>
+          <ChartHeaderActions chartId={chartId} title={chartTitle}>
+            <Dropdown
+              isOpen={isDropdownOpen}
+              onSelect={onSelect}
+              onOpenChange={(isOpen: boolean) => setIsDropdownOpen(isOpen)}
+              toggle={(toggleRef: React.Ref<MenuToggleElement>) => (
+                <MenuToggle
+                  ref={toggleRef}
+                  onClick={onDropdownToggle}
+                  isExpanded={isDropdownOpen}
+                  style={{ minWidth: "250px" }}
+                >
+                  {VIEW_MODE_LABELS[viewMode]}
+                </MenuToggle>
+              )}
+            >
+              <DropdownList>
+                <DropdownItem
+                  key="networkDistribution"
+                  value="networkDistribution"
+                >
+                  VM distribution by network
+                </DropdownItem>
+                <DropdownItem key="nicCount" value="nicCount">
+                  VM distribution by NIC count
+                </DropdownItem>
+              </DropdownList>
+            </Dropdown>
+          </ChartHeaderActions>
+        </Flex>
+      </CardTitle>
+      <CardBody className={dashboardStyles.cardBodyScrollable}>
+        <ChartExportSurface id={chartId} title={chartTitle}>
           {viewMode === "networkDistribution" &&
             (chartData.length === 0 ? (
               <AppEmptyState
@@ -363,9 +361,9 @@ export const NetworkOverview: React.FC<NetworkOverviewProps> = ({
                 }
               />
             ))}
-        </CardBody>
-      </Card>
-    </div>
+        </ChartExportSurface>
+      </CardBody>
+    </Card>
   );
 };
 

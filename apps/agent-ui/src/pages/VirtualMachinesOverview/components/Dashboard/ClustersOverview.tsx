@@ -1,11 +1,10 @@
 import { css } from "@emotion/css";
 import type { InventoryData } from "@openshift-migration-advisor/agent-sdk";
 import {
+  ChartExportSurface,
   ChartHeaderActions,
-  chartExportRootStyle,
   dashboardStyles,
   MigrationDonutChart,
-  useRegisterChart,
 } from "@openshift-migration-advisor/shared-components";
 import {
   Card,
@@ -318,71 +317,67 @@ export const ClustersOverview: React.FC<ClustersOverviewProps> = ({
 
   const chartId = "clusters-overview";
   const chartTitle = `Clusters — ${VIEW_MODE_LABELS[viewMode]}`;
-  const chartRef = useRegisterChart({ id: chartId, title: chartTitle });
 
   return (
-    <div ref={chartRef} style={chartExportRootStyle}>
-      <Card
-        className={dashboardStyles.card}
-        id={chartId}
-        style={{ overflow: "hidden" }}
-      >
-        <CardTitle>
-          <Flex
-            justifyContent={{ default: "justifyContentSpaceBetween" }}
-            alignItems={{ default: "alignItemsCenter" }}
-            style={{ width: "100%" }}
-          >
-            <FlexItem>
+    <Card
+      className={dashboardStyles.card}
+      id={chartId}
+      style={{ overflow: "hidden" }}
+    >
+      <CardTitle>
+        <Flex
+          justifyContent={{ default: "justifyContentSpaceBetween" }}
+          alignItems={{ default: "alignItemsCenter" }}
+          style={{ width: "100%" }}
+        >
+          <FlexItem>
+            <div>
               <div>
-                <div>
-                  <DatabaseIcon /> Clusters
-                </div>
-                <div style={{ color: "#6a6e73", fontSize: "0.85rem" }}>
-                  {viewMode === "dataCenterDistribution"
-                    ? "Top 5 datacenters"
-                    : "Top 5 clusters"}
-                </div>
+                <DatabaseIcon /> Clusters
               </div>
-            </FlexItem>
-            <ChartHeaderActions chartId={chartId} title={chartTitle}>
-              <Dropdown
-                isOpen={isDropdownOpen}
-                onSelect={onSelect}
-                onOpenChange={(isOpen: boolean) => setIsDropdownOpen(isOpen)}
-                toggle={(toggleRef: React.Ref<MenuToggleElement>) => (
-                  <MenuToggle
-                    ref={toggleRef}
-                    onClick={onDropdownToggle}
-                    isExpanded={isDropdownOpen}
-                    style={{ minWidth: "250px" }}
-                  >
-                    {VIEW_MODE_LABELS[viewMode]}
-                  </MenuToggle>
-                )}
-              >
-                <DropdownList>
-                  <DropdownItem key="vmByCluster" value="vmByCluster">
-                    VM distribution by cluster
-                  </DropdownItem>
-                  <DropdownItem
-                    key="cpuOverCommitment"
-                    value="cpuOverCommitment"
-                  >
-                    Cluster CPU over commitment
-                  </DropdownItem>
-                  <DropdownItem
-                    key="dataCenterDistribution"
-                    value="dataCenterDistribution"
-                  >
-                    Cluster distribution by data center
-                  </DropdownItem>
-                </DropdownList>
-              </Dropdown>
-            </ChartHeaderActions>
-          </Flex>
-        </CardTitle>
-        <CardBody className={dashboardStyles.cardBodyScrollable}>
+              <div style={{ color: "#6a6e73", fontSize: "0.85rem" }}>
+                {viewMode === "dataCenterDistribution"
+                  ? "Top 5 datacenters"
+                  : "Top 5 clusters"}
+              </div>
+            </div>
+          </FlexItem>
+          <ChartHeaderActions chartId={chartId} title={chartTitle}>
+            <Dropdown
+              isOpen={isDropdownOpen}
+              onSelect={onSelect}
+              onOpenChange={(isOpen: boolean) => setIsDropdownOpen(isOpen)}
+              toggle={(toggleRef: React.Ref<MenuToggleElement>) => (
+                <MenuToggle
+                  ref={toggleRef}
+                  onClick={onDropdownToggle}
+                  isExpanded={isDropdownOpen}
+                  style={{ minWidth: "250px" }}
+                >
+                  {VIEW_MODE_LABELS[viewMode]}
+                </MenuToggle>
+              )}
+            >
+              <DropdownList>
+                <DropdownItem key="vmByCluster" value="vmByCluster">
+                  VM distribution by cluster
+                </DropdownItem>
+                <DropdownItem key="cpuOverCommitment" value="cpuOverCommitment">
+                  Cluster CPU over commitment
+                </DropdownItem>
+                <DropdownItem
+                  key="dataCenterDistribution"
+                  value="dataCenterDistribution"
+                >
+                  Cluster distribution by data center
+                </DropdownItem>
+              </DropdownList>
+            </Dropdown>
+          </ChartHeaderActions>
+        </Flex>
+      </CardTitle>
+      <CardBody className={dashboardStyles.cardBodyScrollable}>
+        <ChartExportSurface id={chartId} title={chartTitle}>
           {viewMode === "cpuOverCommitment" ? (
             chartData.length === 0 ? (
               <AppEmptyState
@@ -445,9 +440,9 @@ export const ClustersOverview: React.FC<ClustersOverviewProps> = ({
               }
             />
           )}
-        </CardBody>
-      </Card>
-    </div>
+        </ChartExportSurface>
+      </CardBody>
+    </Card>
   );
 };
 
