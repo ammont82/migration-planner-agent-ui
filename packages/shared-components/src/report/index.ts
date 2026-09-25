@@ -15,6 +15,7 @@ export {
   type EncodeChartPng,
   type ZipChartFiles,
 } from "./ChartExportProvider.js";
+export { ChartExportSurface } from "./ChartExportSurface.js";
 export { captureChartElement } from "./captureChartElement.js";
 export {
   CHART_EXPORT_CAPTURING_ATTR,

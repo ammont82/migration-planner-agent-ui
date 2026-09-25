@@ -358,4 +358,32 @@ describe("ReportExportMenu", () => {
 
     expect(onExportPng).toHaveBeenCalledTimes(1);
   });
+
+  it("places the loading spinner in the toggle icon slot", () => {
+    render(
+      <ReportExportMenu
+        isLoading
+        loadingLabel="Generating PNG..."
+        options={[
+          {
+            key: "png",
+            label: "PNG",
+            description: "Download all charts as PNG files",
+            onSelect: vi.fn(),
+          },
+        ]}
+      />,
+    );
+
+    const toggle = screen.getByRole("button", {
+      name: "Export report options",
+    });
+    expect(toggle).toHaveTextContent("Generating PNG...");
+    const iconSlot = toggle.querySelector(".pf-v6-c-menu-toggle__icon");
+    expect(iconSlot).not.toBeNull();
+    expect(iconSlot?.querySelector('[role="progressbar"]')).not.toBeNull();
+    expect(
+      toggle.querySelector(".pf-v6-c-menu-toggle__text")?.textContent,
+    ).toBe("Generating PNG...");
+  });
 });

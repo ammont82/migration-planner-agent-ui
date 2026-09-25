@@ -22,12 +22,8 @@ import { Table, Tbody, Td, Th, Thead, Tr } from "@patternfly/react-table";
 import type { FC, Ref } from "react";
 import { CardEmptyState } from "./CardEmptyState.js";
 import { ChartHeaderActions } from "./ChartDownloadButton.js";
-import {
-  chartExportHideProps,
-  chartExportRootStyle,
-  chartExportScrollProps,
-} from "./chartExport.js";
-import { useRegisterChart } from "./chartExportContext.js";
+import { ChartExportSurface } from "./ChartExportSurface.js";
+import { chartExportHideProps, chartExportScrollProps } from "./chartExport.js";
 import { REPORT_CARD_EMPTY_STATE_TITLES } from "./constants.js";
 import { dashboardStyles, tableFullWidthStyle } from "./dashboardStyles.js";
 import { EmptySearchResults } from "./EmptySearchResults.js";
@@ -57,46 +53,42 @@ interface OSDistributionProps {
   osData: Record<string, OSDistributionEntry>;
 }
 
-export const OSDistribution: FC<OSDistributionProps> = ({ osData }) => {
-  const chartRef = useRegisterChart({
-    id: OS_DISTRIBUTION_CHART_ID,
-    title: OS_DISTRIBUTION_TITLE,
-  });
-
-  return (
-    <div ref={chartRef} style={chartExportRootStyle}>
-      <Card className={dashboardStyles.card} id={OS_DISTRIBUTION_CHART_ID}>
-        <CardTitle>
+export const OSDistribution: FC<OSDistributionProps> = ({ osData }) => (
+  <Card className={dashboardStyles.card} id={OS_DISTRIBUTION_CHART_ID}>
+    <CardTitle>
+      <Flex
+        justifyContent={{ default: "justifyContentSpaceBetween" }}
+        alignItems={{ default: "alignItemsCenter" }}
+      >
+        <FlexItem>
           <Flex
-            justifyContent={{ default: "justifyContentSpaceBetween" }}
             alignItems={{ default: "alignItemsCenter" }}
+            spaceItems={{ default: "spaceItemsSm" }}
           >
             <FlexItem>
-              <Flex
-                alignItems={{ default: "alignItemsCenter" }}
-                spaceItems={{ default: "spaceItemsSm" }}
-              >
-                <FlexItem>
-                  <DesktopIcon /> Operating Systems
-                </FlexItem>
-                <FlexItem {...chartExportHideProps}>
-                  <OsSupportTiersHelpPopover />
-                </FlexItem>
-              </Flex>
+              <DesktopIcon /> Operating Systems
             </FlexItem>
-            <ChartHeaderActions
-              chartId={OS_DISTRIBUTION_CHART_ID}
-              title={OS_DISTRIBUTION_TITLE}
-            />
+            <FlexItem {...chartExportHideProps}>
+              <OsSupportTiersHelpPopover />
+            </FlexItem>
           </Flex>
-        </CardTitle>
-        <CardBody>
-          <OSBarChart osData={osData} />
-        </CardBody>
-      </Card>
-    </div>
-  );
-};
+        </FlexItem>
+        <ChartHeaderActions
+          chartId={OS_DISTRIBUTION_CHART_ID}
+          title={OS_DISTRIBUTION_TITLE}
+        />
+      </Flex>
+    </CardTitle>
+    <CardBody>
+      <ChartExportSurface
+        id={OS_DISTRIBUTION_CHART_ID}
+        title={OS_DISTRIBUTION_TITLE}
+      >
+        <OSBarChart osData={osData} />
+      </ChartExportSurface>
+    </CardBody>
+  </Card>
+);
 
 interface OSBarChartProps {
   osData: Record<string, OSDistributionEntry>;

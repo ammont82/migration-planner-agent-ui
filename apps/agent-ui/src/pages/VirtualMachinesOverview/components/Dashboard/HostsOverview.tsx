@@ -1,11 +1,10 @@
 import { css } from "@emotion/css";
 import type { Host } from "@openshift-migration-advisor/agent-sdk";
 import {
+  ChartExportSurface,
   ChartHeaderActions,
-  chartExportRootStyle,
   dashboardStyles,
   MigrationDonutChart,
-  useRegisterChart,
 } from "@openshift-migration-advisor/shared-components";
 import {
   Card,
@@ -89,28 +88,26 @@ export const HostsOverview: React.FC<HostsOverviewProps> = ({ hosts = [] }) => {
 
   const chartId = "hosts-overview";
   const chartTitle = "Host distribution by model";
-  const chartRef = useRegisterChart({ id: chartId, title: chartTitle });
-
   return (
-    <div ref={chartRef} style={chartExportRootStyle}>
-      <Card className={dashboardStyles.card} id={chartId}>
-        <CardTitle>
-          <Flex
-            justifyContent={{ default: "justifyContentSpaceBetween" }}
-            alignItems={{ default: "alignItemsCenter" }}
-          >
-            <FlexItem>
+    <Card className={dashboardStyles.card} id={chartId}>
+      <CardTitle>
+        <Flex
+          justifyContent={{ default: "justifyContentSpaceBetween" }}
+          alignItems={{ default: "alignItemsCenter" }}
+        >
+          <FlexItem>
+            <div>
               <div>
-                <div>
-                  <ServerIcon /> Host distribution by model
-                </div>
-                <div className={styles.cardSubtitle}>Top 5 models</div>
+                <ServerIcon /> Host distribution by model
               </div>
-            </FlexItem>
-            <ChartHeaderActions chartId={chartId} title={chartTitle} />
-          </Flex>
-        </CardTitle>
-        <CardBody className={dashboardStyles.cardBodyScrollable}>
+              <div className={styles.cardSubtitle}>Top 5 models</div>
+            </div>
+          </FlexItem>
+          <ChartHeaderActions chartId={chartId} title={chartTitle} />
+        </Flex>
+      </CardTitle>
+      <CardBody className={dashboardStyles.cardBodyScrollable}>
+        <ChartExportSurface id={chartId} title={chartTitle}>
           {slices.length === 0 ? (
             <AppEmptyState
               titleText="No data available"
@@ -138,9 +135,9 @@ export const HostsOverview: React.FC<HostsOverviewProps> = ({ hosts = [] }) => {
               }) => `${datum.countDisplay}\n${percent.toFixed(1)}%`}
             />
           )}
-        </CardBody>
-      </Card>
-    </div>
+        </ChartExportSurface>
+      </CardBody>
+    </Card>
   );
 };
 

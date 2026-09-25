@@ -1,12 +1,11 @@
 import type { IssuesBreakdown } from "@openshift-migration-advisor/agent-sdk";
 import {
+  ChartExportSurface,
   ChartHeaderActions,
   chartColorFailure,
   chartColorSuccess,
-  chartExportRootStyle,
   dashboardStyles,
   MigrationDonutChart,
-  useRegisterChart,
 } from "@openshift-migration-advisor/shared-components";
 import {
   Card,
@@ -140,59 +139,58 @@ export const VMMigrationStatus: React.FC<VmMigrationStatusProps> = ({
 
   const chartId = "vm-migration-status";
   const chartTitle = `VM migration status — ${viewModeLabels[viewMode]}`;
-  const chartRef = useRegisterChart({ id: chartId, title: chartTitle });
 
   return (
-    <div ref={chartRef} style={chartExportRootStyle}>
-      <Card className={dashboardStyles.card} id={chartId}>
-        <CardTitle>
-          <Flex
-            alignItems={{ default: "alignItemsCenter" }}
-            justifyContent={{ default: "justifyContentSpaceBetween" }}
-          >
-            <FlexItem>
-              <VirtualMachineIcon /> VM Migration Status
-            </FlexItem>
-            <ChartHeaderActions chartId={chartId} title={chartTitle}>
-              <Dropdown
-                isOpen={isDropdownOpen}
-                onOpenChange={setIsDropdownOpen}
-                toggle={(toggleRef: React.Ref<MenuToggleElement>) => (
-                  <MenuToggle
-                    ref={toggleRef}
-                    onClick={() => setIsDropdownOpen(!isDropdownOpen)}
-                    isExpanded={isDropdownOpen}
-                    style={{ minWidth: "250px" }}
-                  >
-                    {viewModeLabels[viewMode]}
-                  </MenuToggle>
-                )}
-              >
-                <DropdownList>
-                  <DropdownItem
-                    key="issuesVsNoIssues"
-                    onClick={() => {
-                      setViewMode("issuesVsNoIssues");
-                      setIsDropdownOpen(false);
-                    }}
-                  >
-                    {viewModeLabels.issuesVsNoIssues}
-                  </DropdownItem>
-                  <DropdownItem
-                    key="issuesBreakdown"
-                    onClick={() => {
-                      setViewMode("issuesBreakdown");
-                      setIsDropdownOpen(false);
-                    }}
-                  >
-                    {viewModeLabels.issuesBreakdown}
-                  </DropdownItem>
-                </DropdownList>
-              </Dropdown>
-            </ChartHeaderActions>
-          </Flex>
-        </CardTitle>
-        <CardBody className={dashboardStyles.cardBodyScrollable}>
+    <Card className={dashboardStyles.card} id={chartId}>
+      <CardTitle>
+        <Flex
+          alignItems={{ default: "alignItemsCenter" }}
+          justifyContent={{ default: "justifyContentSpaceBetween" }}
+        >
+          <FlexItem>
+            <VirtualMachineIcon /> VM Migration Status
+          </FlexItem>
+          <ChartHeaderActions chartId={chartId} title={chartTitle}>
+            <Dropdown
+              isOpen={isDropdownOpen}
+              onOpenChange={setIsDropdownOpen}
+              toggle={(toggleRef: React.Ref<MenuToggleElement>) => (
+                <MenuToggle
+                  ref={toggleRef}
+                  onClick={() => setIsDropdownOpen(!isDropdownOpen)}
+                  isExpanded={isDropdownOpen}
+                  style={{ minWidth: "250px" }}
+                >
+                  {viewModeLabels[viewMode]}
+                </MenuToggle>
+              )}
+            >
+              <DropdownList>
+                <DropdownItem
+                  key="issuesVsNoIssues"
+                  onClick={() => {
+                    setViewMode("issuesVsNoIssues");
+                    setIsDropdownOpen(false);
+                  }}
+                >
+                  {viewModeLabels.issuesVsNoIssues}
+                </DropdownItem>
+                <DropdownItem
+                  key="issuesBreakdown"
+                  onClick={() => {
+                    setViewMode("issuesBreakdown");
+                    setIsDropdownOpen(false);
+                  }}
+                >
+                  {viewModeLabels.issuesBreakdown}
+                </DropdownItem>
+              </DropdownList>
+            </Dropdown>
+          </ChartHeaderActions>
+        </Flex>
+      </CardTitle>
+      <CardBody className={dashboardStyles.cardBodyScrollable}>
+        <ChartExportSurface id={chartId} title={chartTitle}>
           {viewMode === "issuesVsNoIssues" ? (
             <MigrationDonutChart
               data={donutData}
@@ -305,8 +303,8 @@ export const VMMigrationStatus: React.FC<VmMigrationStatusProps> = ({
               </div>
             </div>
           )}
-        </CardBody>
-      </Card>
-    </div>
+        </ChartExportSurface>
+      </CardBody>
+    </Card>
   );
 };
