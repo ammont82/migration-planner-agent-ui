@@ -202,32 +202,32 @@ export const VCenterClusterDetails: FC<VCenterClusterDetailsProps> = ({
   rows,
   details,
 }) => (
-  <Card isFullHeight id={CLUSTER_DETAILS_CHART_ID}>
-    <CardTitle>
-      <Flex
-        justifyContent={{ default: "justifyContentSpaceBetween" }}
-        alignItems={{ default: "alignItemsCenter" }}
-      >
-        <FlexItem>{CLUSTER_DETAILS_TITLE}</FlexItem>
-        <ChartHeaderActions
-          chartId={CLUSTER_DETAILS_CHART_ID}
-          title={CLUSTER_DETAILS_TITLE}
-        />
-      </Flex>
-    </CardTitle>
-    <CardBody>
-      <ChartExportSurface
-        id={CLUSTER_DETAILS_CHART_ID}
-        title={CLUSTER_DETAILS_TITLE}
-      >
+  <ChartExportSurface
+    id={CLUSTER_DETAILS_CHART_ID}
+    title={CLUSTER_DETAILS_TITLE}
+  >
+    <Card isFullHeight id={CLUSTER_DETAILS_CHART_ID}>
+      <CardTitle>
+        <Flex
+          justifyContent={{ default: "justifyContentSpaceBetween" }}
+          alignItems={{ default: "alignItemsCenter" }}
+        >
+          <FlexItem>{CLUSTER_DETAILS_TITLE}</FlexItem>
+          <ChartHeaderActions
+            chartId={CLUSTER_DETAILS_CHART_ID}
+            title={CLUSTER_DETAILS_TITLE}
+          />
+        </Flex>
+      </CardTitle>
+      <CardBody>
         {isAggregateView || !details ? (
           <AggregateCluster rows={rows} />
         ) : (
           <DetailedClusterView details={details} />
         )}
-      </ChartExportSurface>
-    </CardBody>
-  </Card>
+      </CardBody>
+    </Card>
+  </ChartExportSurface>
 );
 
 VCenterClusterDetails.displayName = "VCenterClusterDetails";

@@ -89,25 +89,25 @@ export const HostsOverview: React.FC<HostsOverviewProps> = ({ hosts = [] }) => {
   const chartId = "hosts-overview";
   const chartTitle = "Host distribution by model";
   return (
-    <Card className={dashboardStyles.card} id={chartId}>
-      <CardTitle>
-        <Flex
-          justifyContent={{ default: "justifyContentSpaceBetween" }}
-          alignItems={{ default: "alignItemsCenter" }}
-        >
-          <FlexItem>
-            <div>
+    <ChartExportSurface id={chartId} title={chartTitle}>
+      <Card className={dashboardStyles.card} id={chartId}>
+        <CardTitle>
+          <Flex
+            justifyContent={{ default: "justifyContentSpaceBetween" }}
+            alignItems={{ default: "alignItemsCenter" }}
+          >
+            <FlexItem>
               <div>
-                <ServerIcon /> Host distribution by model
+                <div>
+                  <ServerIcon /> Host distribution by model
+                </div>
+                <div className={styles.cardSubtitle}>Top 5 models</div>
               </div>
-              <div className={styles.cardSubtitle}>Top 5 models</div>
-            </div>
-          </FlexItem>
-          <ChartHeaderActions chartId={chartId} title={chartTitle} />
-        </Flex>
-      </CardTitle>
-      <CardBody className={dashboardStyles.cardBodyScrollable}>
-        <ChartExportSurface id={chartId} title={chartTitle}>
+            </FlexItem>
+            <ChartHeaderActions chartId={chartId} title={chartTitle} />
+          </Flex>
+        </CardTitle>
+        <CardBody className={dashboardStyles.cardBodyScrollable}>
           {slices.length === 0 ? (
             <AppEmptyState
               titleText="No data available"
@@ -135,9 +135,9 @@ export const HostsOverview: React.FC<HostsOverviewProps> = ({ hosts = [] }) => {
               }) => `${datum.countDisplay}\n${percent.toFixed(1)}%`}
             />
           )}
-        </ChartExportSurface>
-      </CardBody>
-    </Card>
+        </CardBody>
+      </Card>
+    </ChartExportSurface>
   );
 };
 

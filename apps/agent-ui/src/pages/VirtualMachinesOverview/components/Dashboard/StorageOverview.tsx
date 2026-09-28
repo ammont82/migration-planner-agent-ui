@@ -1,6 +1,7 @@
 import {
   ChartExportSurface,
   ChartHeaderActions,
+  chartExportViewsFromLabels,
   dashboardStyles,
   MigrationDonutChart,
 } from "@openshift-migration-advisor/shared-components";
@@ -406,62 +407,71 @@ export const StorageOverview: React.FC<StorageOverviewProps> = ({
   const chartTitle = `Storage — ${VIEW_MODE_LABELS[viewMode]}`;
 
   return (
-    <Card
-      className={`${dashboardStyles.card} ${dashboardStyles.storageCardOverflowHidden}`}
+    <ChartExportSurface
       id={chartId}
+      title={chartTitle}
+      exportViews={chartExportViewsFromLabels("Storage", VIEW_MODE_LABELS)}
+      activeExportViewId={viewMode}
+      onExportViewChange={(viewId) => setViewMode(viewId as ViewMode)}
     >
-      <CardTitle>
-        <Flex
-          justifyContent={{ default: "justifyContentSpaceBetween" }}
-          alignItems={{ default: "alignItemsCenter" }}
-          className={dashboardStyles.storageFlexFullWidth}
-        >
-          <FlexItem>
-            <DatabaseIcon /> Disks
-          </FlexItem>
-          <ChartHeaderActions chartId={chartId} title={chartTitle}>
-            <Dropdown
-              isOpen={isDropdownOpen}
-              onSelect={onSelect}
-              onOpenChange={(isOpen: boolean) => setIsDropdownOpen(isOpen)}
-              toggle={(toggleRef: React.Ref<MenuToggleElement>) => (
-                <MenuToggle
-                  ref={toggleRef}
-                  onClick={onDropdownToggle}
-                  isExpanded={isDropdownOpen}
-                  className={dashboardStyles.storageMenuToggleMinWidth}
-                >
-                  {VIEW_MODE_LABELS[viewMode]}
-                </MenuToggle>
-              )}
-            >
-              <DropdownList>
-                <DropdownItem key="vmCount" value="vmCount">
-                  VM count by disk size tier
-                </DropdownItem>
-                <DropdownItem key="vmCountByDiskType" value="vmCountByDiskType">
-                  VM count by disk type
-                </DropdownItem>
-                <DropdownItem key="totalSize" value="totalSize">
-                  Total disk size by tier
-                </DropdownItem>
-                <DropdownItem
-                  key="sharedDisks"
-                  value="sharedDisks"
-                  isDisabled={
-                    totalWithSharedDisks !== undefined &&
-                    totalWithSharedDisks === 0
-                  }
-                >
-                  Shared disks VS. No shared disks
-                </DropdownItem>
-              </DropdownList>
-            </Dropdown>
-          </ChartHeaderActions>
-        </Flex>
-      </CardTitle>
-      <CardBody className={dashboardStyles.cardBodyScrollable}>
-        <ChartExportSurface id={chartId} title={chartTitle}>
+      <Card
+        className={`${dashboardStyles.card} ${dashboardStyles.storageCardOverflowHidden}`}
+        id={chartId}
+      >
+        <CardTitle>
+          <Flex
+            justifyContent={{ default: "justifyContentSpaceBetween" }}
+            alignItems={{ default: "alignItemsCenter" }}
+            className={dashboardStyles.storageFlexFullWidth}
+          >
+            <FlexItem>
+              <DatabaseIcon /> Disks
+            </FlexItem>
+            <ChartHeaderActions chartId={chartId} title={chartTitle}>
+              <Dropdown
+                isOpen={isDropdownOpen}
+                onSelect={onSelect}
+                onOpenChange={(isOpen: boolean) => setIsDropdownOpen(isOpen)}
+                toggle={(toggleRef: React.Ref<MenuToggleElement>) => (
+                  <MenuToggle
+                    ref={toggleRef}
+                    onClick={onDropdownToggle}
+                    isExpanded={isDropdownOpen}
+                    className={dashboardStyles.storageMenuToggleMinWidth}
+                  >
+                    {VIEW_MODE_LABELS[viewMode]}
+                  </MenuToggle>
+                )}
+              >
+                <DropdownList>
+                  <DropdownItem key="vmCount" value="vmCount">
+                    VM count by disk size tier
+                  </DropdownItem>
+                  <DropdownItem
+                    key="vmCountByDiskType"
+                    value="vmCountByDiskType"
+                  >
+                    VM count by disk type
+                  </DropdownItem>
+                  <DropdownItem key="totalSize" value="totalSize">
+                    Total disk size by tier
+                  </DropdownItem>
+                  <DropdownItem
+                    key="sharedDisks"
+                    value="sharedDisks"
+                    isDisabled={
+                      totalWithSharedDisks !== undefined &&
+                      totalWithSharedDisks === 0
+                    }
+                  >
+                    Shared disks VS. No shared disks
+                  </DropdownItem>
+                </DropdownList>
+              </Dropdown>
+            </ChartHeaderActions>
+          </Flex>
+        </CardTitle>
+        <CardBody className={dashboardStyles.cardBodyScrollable}>
           {viewMode === "vmCountByDiskType" ? (
             <DiskTypeBarChart
               data={diskTypeChartData}
@@ -533,9 +543,9 @@ export const StorageOverview: React.FC<StorageOverviewProps> = ({
               onTitleClick={handleTitleClick}
             />
           )}
-        </ChartExportSurface>
-      </CardBody>
-    </Card>
+        </CardBody>
+      </Card>
+    </ChartExportSurface>
   );
 };
 

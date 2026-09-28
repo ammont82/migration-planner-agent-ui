@@ -54,40 +54,40 @@ interface OSDistributionProps {
 }
 
 export const OSDistribution: FC<OSDistributionProps> = ({ osData }) => (
-  <Card className={dashboardStyles.card} id={OS_DISTRIBUTION_CHART_ID}>
-    <CardTitle>
-      <Flex
-        justifyContent={{ default: "justifyContentSpaceBetween" }}
-        alignItems={{ default: "alignItemsCenter" }}
-      >
-        <FlexItem>
-          <Flex
-            alignItems={{ default: "alignItemsCenter" }}
-            spaceItems={{ default: "spaceItemsSm" }}
-          >
-            <FlexItem>
-              <DesktopIcon /> Operating Systems
-            </FlexItem>
-            <FlexItem {...chartExportHideProps}>
-              <OsSupportTiersHelpPopover />
-            </FlexItem>
-          </Flex>
-        </FlexItem>
-        <ChartHeaderActions
-          chartId={OS_DISTRIBUTION_CHART_ID}
-          title={OS_DISTRIBUTION_TITLE}
-        />
-      </Flex>
-    </CardTitle>
-    <CardBody>
-      <ChartExportSurface
-        id={OS_DISTRIBUTION_CHART_ID}
-        title={OS_DISTRIBUTION_TITLE}
-      >
+  <ChartExportSurface
+    id={OS_DISTRIBUTION_CHART_ID}
+    title={OS_DISTRIBUTION_TITLE}
+  >
+    <Card className={dashboardStyles.card} id={OS_DISTRIBUTION_CHART_ID}>
+      <CardTitle>
+        <Flex
+          justifyContent={{ default: "justifyContentSpaceBetween" }}
+          alignItems={{ default: "alignItemsCenter" }}
+        >
+          <FlexItem>
+            <Flex
+              alignItems={{ default: "alignItemsCenter" }}
+              spaceItems={{ default: "spaceItemsSm" }}
+            >
+              <FlexItem>
+                <DesktopIcon /> Operating Systems
+              </FlexItem>
+              <FlexItem {...chartExportHideProps}>
+                <OsSupportTiersHelpPopover />
+              </FlexItem>
+            </Flex>
+          </FlexItem>
+          <ChartHeaderActions
+            chartId={OS_DISTRIBUTION_CHART_ID}
+            title={OS_DISTRIBUTION_TITLE}
+          />
+        </Flex>
+      </CardTitle>
+      <CardBody>
         <OSBarChart osData={osData} />
-      </ChartExportSurface>
-    </CardBody>
-  </Card>
+      </CardBody>
+    </Card>
+  </ChartExportSurface>
 );
 
 interface OSBarChartProps {

@@ -1,21 +1,55 @@
-import type { CSSProperties, FC, ReactNode } from "react";
-import { chartExportRootStyle } from "./chartExport.js";
+import { type FC, type ReactNode, useCallback } from "react";
+import { flushSync } from "react-dom";
+import {
+  type ChartExportView,
+  chartExportRootStyle,
+  waitForChartExportPaint,
+} from "./chartExport.js";
 import { useRegisterChart } from "./chartExportContext.js";
-
-const surfaceStyle: CSSProperties = {
-  ...chartExportRootStyle,
-  backgroundColor: "#ffffff",
-};
 
 export const ChartExportSurface: FC<{
   id: string;
   title: string;
   filename?: string;
+  exportViews?: ChartExportView[];
+  activeExportViewId?: string;
+  onExportViewChange?: (viewId: string) => void;
   children: ReactNode;
-}> = ({ id, title, filename, children }) => {
-  const ref = useRegisterChart({ id, title, filename });
+}> = ({
+  id,
+  title,
+  filename,
+  exportViews,
+  activeExportViewId,
+  onExportViewChange,
+  children,
+}) => {
+  const setExportView = useCallback(
+    async (viewId: string) => {
+      if (!onExportViewChange) {
+        return;
+      }
+      flushSync(() => {
+        onExportViewChange(viewId);
+      });
+      await waitForChartExportPaint();
+    },
+    [onExportViewChange],
+  );
+
+  const ref = useRegisterChart({
+    id,
+    title,
+    filename,
+    exportViews,
+    activeExportViewId,
+    setExportView:
+      exportViews && exportViews.length > 1 && onExportViewChange
+        ? setExportView
+        : undefined,
+  });
   return (
-    <div ref={ref} style={surfaceStyle}>
+    <div ref={ref} style={chartExportRootStyle}>
       {children}
     </div>
   );

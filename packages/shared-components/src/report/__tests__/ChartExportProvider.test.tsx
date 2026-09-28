@@ -1,8 +1,10 @@
 import "@testing-library/jest-dom";
-import { cleanup, render, screen } from "@testing-library/react";
+import { cleanup, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
+import { useState } from "react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { ChartExportProvider, useChartExport } from "../ChartExportProvider.js";
+import { ChartExportSurface } from "../ChartExportSurface.js";
 import {
   CHART_EXPORT_HIDE_ATTR,
   chartPngFilename,
@@ -258,6 +260,89 @@ describe("ChartExportProvider", () => {
     expect(buildHtml).toHaveBeenCalledTimes(1);
     expect(buildHtml.mock.calls[0]?.[1]).toBe("Overview");
     expect(downloadFile).toHaveBeenCalledWith(expect.any(Blob), "report.html");
+  });
+
+  it("captures every dropdown view for PDF, HTML, and zip exports", async () => {
+    const user = userEvent.setup();
+    const seenViews: string[] = [];
+    const capture = vi.fn(async (element: HTMLElement) => {
+      seenViews.push(
+        element.querySelector("[data-testid='active-view']")?.textContent ?? "",
+      );
+      return fakeCanvas();
+    });
+    const encodePng = vi.fn(async () => new Blob(["png"]));
+    const zipFiles = vi.fn(
+      async (files: { filename: string; blob: Blob }[]) => {
+        return new Blob([files.map((file) => file.filename).join(",")]);
+      },
+    );
+    const buildPdf = vi.fn(
+      async (
+        sources: { title: string; capture: () => Promise<HTMLCanvasElement> }[],
+      ) => {
+        for (const source of sources) {
+          await source.capture();
+        }
+        return new Blob(["pdf"]);
+      },
+    );
+    const downloadFile = vi.fn();
+
+    function DropdownChart(): JSX.Element {
+      const [view, setView] = useState("a");
+      return (
+        <ChartExportSurface
+          id="vm"
+          title={view === "a" ? "View A" : "View B"}
+          exportViews={[
+            { id: "a", title: "View A" },
+            { id: "b", title: "View B" },
+          ]}
+          activeExportViewId={view}
+          onExportViewChange={setView}
+        >
+          <div data-testid="active-view">{view}</div>
+        </ChartExportSurface>
+      );
+    }
+
+    render(
+      <ChartExportProvider
+        capture={capture}
+        encodePng={encodePng}
+        zipFiles={zipFiles}
+        buildPdf={buildPdf}
+        downloadFile={downloadFile}
+        getZipFilename={() => "charts.zip"}
+        getPdfFilename={() => "report.pdf"}
+      >
+        <DropdownChart />
+        <DownloadAllButton />
+        <DownloadPdfButton />
+      </ChartExportProvider>,
+    );
+
+    await user.click(screen.getByRole("button", { name: "Download all" }));
+    await waitFor(() => expect(zipFiles).toHaveBeenCalledTimes(1));
+    expect(seenViews).toEqual(["a", "b"]);
+    expect(zipFiles.mock.calls[0]?.[0].map((file) => file.filename)).toEqual([
+      "01-view-a.png",
+      "02-view-b.png",
+    ]);
+    expect(screen.getByTestId("active-view")).toHaveTextContent("a");
+
+    seenViews.length = 0;
+    await user.click(screen.getByRole("button", { name: "Download pdf" }));
+    await waitFor(() =>
+      expect(downloadFile).toHaveBeenCalledWith(expect.any(Blob), "report.pdf"),
+    );
+    expect(buildPdf.mock.calls[0]?.[0].map((source) => source.title)).toEqual([
+      "View A",
+      "View B",
+    ]);
+    expect(seenViews).toEqual(["a", "b"]);
+    expect(screen.getByTestId("active-view")).toHaveTextContent("a");
   });
 
   it("warns when two live charts share an id", () => {

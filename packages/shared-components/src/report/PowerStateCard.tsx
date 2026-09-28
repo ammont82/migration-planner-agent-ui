@@ -41,20 +41,20 @@ export const PowerStateCard: FC<PowerStateCardProps> = ({
   itemsPerRow = 2,
   legendVariant = "html",
 }) => (
-  <Card className={dashboardStyles.card} id={id}>
-    <CardTitle>
-      <Flex
-        justifyContent={{ default: "justifyContentSpaceBetween" }}
-        alignItems={{ default: "alignItemsCenter" }}
-      >
-        <FlexItem>
-          {icon} {title}
-        </FlexItem>
-        <ChartHeaderActions chartId={id} title={title} />
-      </Flex>
-    </CardTitle>
-    <CardBody>
-      <ChartExportSurface id={id} title={title}>
+  <ChartExportSurface id={id} title={title}>
+    <Card className={dashboardStyles.card} id={id}>
+      <CardTitle>
+        <Flex
+          justifyContent={{ default: "justifyContentSpaceBetween" }}
+          alignItems={{ default: "alignItemsCenter" }}
+        >
+          <FlexItem>
+            {icon} {title}
+          </FlexItem>
+          <ChartHeaderActions chartId={id} title={title} />
+        </Flex>
+      </CardTitle>
+      <CardBody>
         {total === 0 ? (
           <CardEmptyState title={emptyTitle} />
         ) : (
@@ -78,9 +78,9 @@ export const PowerStateCard: FC<PowerStateCardProps> = ({
             }
           />
         )}
-      </ChartExportSurface>
-    </CardBody>
-  </Card>
+      </CardBody>
+    </Card>
+  </ChartExportSurface>
 );
 
 PowerStateCard.displayName = "PowerStateCard";

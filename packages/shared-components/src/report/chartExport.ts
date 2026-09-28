@@ -20,11 +20,20 @@ export type ChartExportMeta = {
   filename?: string;
 };
 
+export type ChartExportView = {
+  id: string;
+  title: string;
+  filename?: string;
+};
+
 export type RegisteredChart = {
   id: string;
   title: string;
   filename: string;
   element: HTMLElement;
+  exportViews?: ChartExportView[];
+  activeExportViewId?: string;
+  setExportView?: (viewId: string) => Promise<void>;
 };
 
 export type ChartExportFile = {
@@ -42,6 +51,85 @@ export type ChartCaptureSource = {
 export function releaseCanvas(canvas: HTMLCanvasElement): void {
   canvas.width = 0;
   canvas.height = 0;
+}
+
+export function waitForChartExportPaint(): Promise<void> {
+  if (typeof requestAnimationFrame !== "function") {
+    return Promise.resolve();
+  }
+  return new Promise((resolve) => {
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => resolve());
+    });
+  });
+}
+
+export function chartExportViewsFromLabels(
+  titlePrefix: string,
+  labels: Record<string, string>,
+): ChartExportView[] {
+  return Object.entries(labels).map(([id, label]) => ({
+    id,
+    title: `${titlePrefix} — ${label}`,
+  }));
+}
+
+function shouldCycleExportViews(chart: RegisteredChart): boolean {
+  return Boolean(
+    chart.exportViews && chart.exportViews.length > 1 && chart.setExportView,
+  );
+}
+
+function bulkExportViews(chart: RegisteredChart): ChartExportView[] {
+  if (shouldCycleExportViews(chart) && chart.exportViews) {
+    return chart.exportViews;
+  }
+  return [
+    {
+      id: chart.id,
+      title: chart.title,
+      filename: chart.filename,
+    },
+  ];
+}
+
+export function toBulkChartCaptureSources(
+  charts: RegisteredChart[],
+  capture: (element: HTMLElement) => Promise<HTMLCanvasElement>,
+): ChartCaptureSource[] {
+  return charts.flatMap((chart) => {
+    const views = bulkExportViews(chart);
+    const cyclesViews = shouldCycleExportViews(chart);
+    return views.map((view) => ({
+      id: cyclesViews ? `${chart.id}--${view.id}` : chart.id,
+      title: view.title,
+      filename:
+        view.filename ??
+        (cyclesViews
+          ? chartPngFilename(view.title, `${chart.id}-${view.id}`)
+          : chart.filename),
+      capture: async () => {
+        if (cyclesViews && chart.setExportView) {
+          await chart.setExportView(view.id);
+        }
+        return capture(chart.element);
+      },
+    }));
+  });
+}
+
+export async function restoreChartExportViews(
+  charts: RegisteredChart[],
+): Promise<void> {
+  for (const chart of charts) {
+    if (
+      shouldCycleExportViews(chart) &&
+      chart.setExportView &&
+      chart.activeExportViewId
+    ) {
+      await chart.setExportView(chart.activeExportViewId);
+    }
+  }
 }
 
 export function sortRegisteredChartsByDocumentOrder(

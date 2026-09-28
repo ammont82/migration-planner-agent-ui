@@ -13,7 +13,9 @@ import {
   downloadBlob,
   type RegisteredChart,
   releaseCanvas,
+  restoreChartExportViews,
   sortRegisteredChartsByDocumentOrder,
+  toBulkChartCaptureSources,
 } from "./chartExport.js";
 import {
   type ChartExportApi,
@@ -105,12 +107,7 @@ function toCaptureSources(
   charts: RegisteredChart[],
   capture: CaptureChartElement,
 ): ChartCaptureSource[] {
-  return charts.map((chart) => ({
-    id: chart.id,
-    title: chart.title,
-    filename: chart.filename,
-    capture: () => capture(chart.element),
-  }));
+  return toBulkChartCaptureSources(charts, capture);
 }
 
 export const ChartExportProvider: FC<ChartExportProviderProps> = ({
@@ -234,16 +231,21 @@ export const ChartExportProvider: FC<ChartExportProviderProps> = ({
         const captureFn = await resolveCapture(capture);
         const zipFn = await resolveZip(zipFiles);
         const files: ChartExportFile[] = [];
-        for (const [index, chart] of charts.entries()) {
-          const canvas = await captureFn(chart.element);
-          try {
-            files.push({
-              filename: `${String(index + 1).padStart(2, "0")}-${chart.filename}`,
-              blob: await encodePng(canvas),
-            });
-          } finally {
-            releaseCanvas(canvas);
+        const sources = toBulkChartCaptureSources(charts, captureFn);
+        try {
+          for (const [index, source] of sources.entries()) {
+            const canvas = await source.capture();
+            try {
+              files.push({
+                filename: `${String(index + 1).padStart(2, "0")}-${source.filename}`,
+                blob: await encodePng(canvas),
+              });
+            } finally {
+              releaseCanvas(canvas);
+            }
           }
+        } finally {
+          await restoreChartExportViews(charts);
         }
         downloadFile(await zipFn(files), getZipFilename());
       },
@@ -270,10 +272,14 @@ export const ChartExportProvider: FC<ChartExportProviderProps> = ({
           }
           const captureFn = await resolveCapture(capture);
           const build = await resolvePdf(buildPdf);
-          downloadFile(
-            await build(toCaptureSources(charts, captureFn), documentTitle),
-            getPdfFilename(),
-          );
+          try {
+            downloadFile(
+              await build(toCaptureSources(charts, captureFn), documentTitle),
+              getPdfFilename(),
+            );
+          } finally {
+            await restoreChartExportViews(charts);
+          }
         },
         null,
         "pdf",
@@ -292,10 +298,14 @@ export const ChartExportProvider: FC<ChartExportProviderProps> = ({
           }
           const captureFn = await resolveCapture(capture);
           const build = await resolveHtml(buildHtml);
-          downloadFile(
-            await build(toCaptureSources(charts, captureFn), documentTitle),
-            getHtmlFilename(),
-          );
+          try {
+            downloadFile(
+              await build(toCaptureSources(charts, captureFn), documentTitle),
+              getHtmlFilename(),
+            );
+          } finally {
+            await restoreChartExportViews(charts);
+          }
         },
         null,
         "html",

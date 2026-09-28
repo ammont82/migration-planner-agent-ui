@@ -37,23 +37,23 @@ export const ErrorTable: React.FC<ErrorTableProps> = ({
   const chartTitle = "Errors";
 
   return (
-    <Card className={dashboardStyles.card} id={chartId}>
-      <CardTitle>
-        <Flex
-          justifyContent={{ default: "justifyContentSpaceBetween" }}
-          alignItems={{ default: "alignItemsCenter" }}
-        >
-          <FlexItem>
-            <Icon status="danger">
-              <ExclamationCircleIcon />
-            </Icon>{" "}
-            Errors
-          </FlexItem>
-          <ChartHeaderActions chartId={chartId} title={chartTitle} />
-        </Flex>
-      </CardTitle>
-      <CardBody className={dashboardStyles.cardBodyScrollable}>
-        <ChartExportSurface id={chartId} title={chartTitle}>
+    <ChartExportSurface id={chartId} title={chartTitle}>
+      <Card className={dashboardStyles.card} id={chartId}>
+        <CardTitle>
+          <Flex
+            justifyContent={{ default: "justifyContentSpaceBetween" }}
+            alignItems={{ default: "alignItemsCenter" }}
+          >
+            <FlexItem>
+              <Icon status="danger">
+                <ExclamationCircleIcon />
+              </Icon>{" "}
+              Errors
+            </FlexItem>
+            <ChartHeaderActions chartId={chartId} title={chartTitle} />
+          </Flex>
+        </CardTitle>
+        <CardBody className={dashboardStyles.cardBodyScrollable}>
           {errors.length === 0 ? (
             <AppEmptyState
               titleText="No errors found"
@@ -72,8 +72,8 @@ export const ErrorTable: React.FC<ErrorTableProps> = ({
               />
             </div>
           )}
-        </ChartExportSurface>
-      </CardBody>
-    </Card>
+        </CardBody>
+      </Card>
+    </ChartExportSurface>
   );
 };

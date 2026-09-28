@@ -37,23 +37,23 @@ export const WarningsTable: React.FC<WarningsTableProps> = ({
   const chartTitle = "Warnings";
 
   return (
-    <Card className={dashboardStyles.card} id={chartId}>
-      <CardTitle>
-        <Flex
-          justifyContent={{ default: "justifyContentSpaceBetween" }}
-          alignItems={{ default: "alignItemsCenter" }}
-        >
-          <FlexItem>
-            <Icon status="warning">
-              <ExclamationTriangleIcon />
-            </Icon>{" "}
-            Warnings
-          </FlexItem>
-          <ChartHeaderActions chartId={chartId} title={chartTitle} />
-        </Flex>
-      </CardTitle>
-      <CardBody className={dashboardStyles.cardBodyScrollable}>
-        <ChartExportSurface id={chartId} title={chartTitle}>
+    <ChartExportSurface id={chartId} title={chartTitle}>
+      <Card className={dashboardStyles.card} id={chartId}>
+        <CardTitle>
+          <Flex
+            justifyContent={{ default: "justifyContentSpaceBetween" }}
+            alignItems={{ default: "alignItemsCenter" }}
+          >
+            <FlexItem>
+              <Icon status="warning">
+                <ExclamationTriangleIcon />
+              </Icon>{" "}
+              Warnings
+            </FlexItem>
+            <ChartHeaderActions chartId={chartId} title={chartTitle} />
+          </Flex>
+        </CardTitle>
+        <CardBody className={dashboardStyles.cardBodyScrollable}>
           {warnings.length === 0 ? (
             <AppEmptyState
               titleText="No warning found"
@@ -72,8 +72,8 @@ export const WarningsTable: React.FC<WarningsTableProps> = ({
               />
             </div>
           )}
-        </ChartExportSurface>
-      </CardBody>
-    </Card>
+        </CardBody>
+      </Card>
+    </ChartExportSurface>
   );
 };

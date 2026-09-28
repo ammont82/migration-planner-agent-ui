@@ -7,6 +7,7 @@ import {
 } from "react";
 import {
   type ChartExportMeta,
+  type ChartExportView,
   chartPngFilename,
   type RegisteredChart,
 } from "./chartExport.js";
@@ -43,7 +44,14 @@ export function useRegisterChart({
   id,
   title,
   filename,
-}: ChartExportMeta): RefCallback<HTMLElement> {
+  exportViews,
+  activeExportViewId,
+  setExportView,
+}: ChartExportMeta & {
+  exportViews?: ChartExportView[];
+  activeExportViewId?: string;
+  setExportView?: (viewId: string) => Promise<void>;
+}): RefCallback<HTMLElement> {
   const registry = useContext(ChartExportRegistryContext);
   const [element, setElement] = useState<HTMLElement | null>(null);
   const resolvedFilename = filename ?? chartPngFilename(title, id);
@@ -57,8 +65,20 @@ export function useRegisterChart({
       title,
       filename: resolvedFilename,
       element,
+      exportViews,
+      activeExportViewId,
+      setExportView,
     });
-  }, [element, id, registry, resolvedFilename, title]);
+  }, [
+    activeExportViewId,
+    element,
+    exportViews,
+    id,
+    registry,
+    resolvedFilename,
+    setExportView,
+    title,
+  ]);
 
   return setElement;
 }

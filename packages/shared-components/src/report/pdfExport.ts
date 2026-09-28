@@ -3,6 +3,7 @@ import { type ChartCaptureSource, releaseCanvas } from "./chartExport.js";
 import { sliceCanvas, splitSegmentForPageHeight } from "./pdfPage.js";
 
 const MARGIN_MM = 10;
+/** Flatten captures onto white; jsPDF cannot embed transparent PNG alpha cleanly. */
 const PAGE_BACKGROUND = "#ffffff";
 
 export async function buildPdfFromCharts(
@@ -26,6 +27,9 @@ export async function buildPdfFromCharts(
   for (const chart of charts) {
     const canvas = await chart.capture();
     try {
+      if (canvas.width < 1 || canvas.height < 1) {
+        throw new Error("Chart capture produced an empty image");
+      }
       pdf.addPage();
       const scaleFactor = contentWidth / Math.max(1, canvas.width);
       const pageHeightPx = contentHeight / scaleFactor;
@@ -120,7 +124,11 @@ function addCanvasPage(
   contentHeight: number,
   margin: number,
 ): void {
-  const imageData = canvas.toDataURL("image/png");
+  if (canvas.width < 1 || canvas.height < 1) {
+    throw new Error("Chart capture produced an empty image");
+  }
+  // JPEG is opaque. jsPDF's PNG path mishandles canvas alpha (black fills / failed export).
+  const imageData = canvas.toDataURL("image/jpeg", 0.92);
   const pageScale = Math.min(
     contentWidth / canvas.width,
     contentHeight / sliceHeightPx,
@@ -129,7 +137,7 @@ function addCanvasPage(
   const renderHeightMm = sliceHeightPx * pageScale;
   pdf.addImage(
     imageData,
-    "PNG",
+    "JPEG",
     margin + (contentWidth - renderWidthMm) / 2,
     margin,
     renderWidthMm,

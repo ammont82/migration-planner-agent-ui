@@ -1,5 +1,10 @@
 import { describe, expect, it } from "vitest";
-import { sortRegisteredChartsByDocumentOrder } from "../chartExport.js";
+import {
+  chartExportViewsFromLabels,
+  restoreChartExportViews,
+  sortRegisteredChartsByDocumentOrder,
+  toBulkChartCaptureSources,
+} from "../chartExport.js";
 import { getChartExportFilename } from "../chartExportFilenames.js";
 import { buildHtmlReport, escapeHtml } from "../htmlExport.js";
 import { splitSegmentForPageHeight } from "../pdfPage.js";
@@ -17,6 +22,61 @@ describe("chart export filenames", () => {
     expect(getChartExportFilename("zip", date)).toBe(
       "migration-export-2026-07-01-charts.zip",
     );
+  });
+});
+
+describe("dropdown chart export views", () => {
+  it("builds a titled view list from card dropdown labels", () => {
+    expect(
+      chartExportViewsFromLabels("VM migration status", {
+        issuesVsNoIssues: "No issues vs with issues",
+        issuesBreakdown: "With issues breakdown",
+      }),
+    ).toEqual([
+      {
+        id: "issuesVsNoIssues",
+        title: "VM migration status — No issues vs with issues",
+      },
+      {
+        id: "issuesBreakdown",
+        title: "VM migration status — With issues breakdown",
+      },
+    ]);
+  });
+
+  it("captures every dropdown view then restores the visible one", async () => {
+    const element = document.createElement("div");
+    const activated: string[] = [];
+    const charts = [
+      {
+        id: "vm",
+        title: "Visible",
+        filename: "visible.png",
+        element,
+        exportViews: [
+          { id: "a", title: "View A" },
+          { id: "b", title: "View B" },
+        ],
+        activeExportViewId: "a",
+        setExportView: async (viewId: string) => {
+          activated.push(viewId);
+        },
+      },
+    ];
+
+    const sources = toBulkChartCaptureSources(charts, async () => {
+      const canvas = document.createElement("canvas");
+      canvas.width = 1;
+      canvas.height = 1;
+      return canvas;
+    });
+
+    expect(sources.map((source) => source.title)).toEqual(["View A", "View B"]);
+    await sources[0].capture();
+    await sources[1].capture();
+    await restoreChartExportViews(charts);
+
+    expect(activated).toEqual(["a", "b", "a"]);
   });
 });
 

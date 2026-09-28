@@ -90,8 +90,53 @@ export function revealHiddenChartAncestors(element: HTMLElement): () => void {
   };
 }
 
-function expandScrollAreas(element: HTMLElement): () => void {
-  const nodes = [
+const PADDED_CAPTURE_SELECTOR =
+  ".pf-v6-c-card__title, .pf-v6-c-card__header, .pf-v6-c-card__body";
+
+function applyComputedPadding(source: HTMLElement, dest: HTMLElement): void {
+  const computed = window.getComputedStyle(source);
+  dest.style.paddingTop = computed.paddingTop;
+  dest.style.paddingRight = computed.paddingRight;
+  dest.style.paddingBottom = computed.paddingBottom;
+  dest.style.paddingLeft = computed.paddingLeft;
+}
+
+function copyComputedPadding(node: HTMLElement): {
+  paddingTop: string;
+  paddingRight: string;
+  paddingBottom: string;
+  paddingLeft: string;
+} {
+  const previous = {
+    paddingTop: node.style.paddingTop,
+    paddingRight: node.style.paddingRight,
+    paddingBottom: node.style.paddingBottom,
+    paddingLeft: node.style.paddingLeft,
+  };
+  applyComputedPadding(node, node);
+  return previous;
+}
+
+function applyComputedPaddingToClone(
+  sourceRoot: HTMLElement,
+  clonedRoot: HTMLElement,
+): void {
+  const sources = sourceRoot.querySelectorAll<HTMLElement>(
+    PADDED_CAPTURE_SELECTOR,
+  );
+  const dests = clonedRoot.querySelectorAll<HTMLElement>(
+    PADDED_CAPTURE_SELECTOR,
+  );
+  sources.forEach((source, index) => {
+    const dest = dests[index];
+    if (dest) {
+      applyComputedPadding(source, dest);
+    }
+  });
+}
+
+function prepareCaptureLayout(element: HTMLElement): () => void {
+  const layoutNodes = [
     element,
     ...Array.from(
       element.querySelectorAll<HTMLElement>(
@@ -99,24 +144,55 @@ function expandScrollAreas(element: HTMLElement): () => void {
       ),
     ),
   ];
-  const previous = nodes.map((node) => ({
+  const paddedNodes = Array.from(
+    element.querySelectorAll<HTMLElement>(PADDED_CAPTURE_SELECTOR),
+  );
+  const previousLayout = layoutNodes.map((node) => ({
     node,
-    overflow: node.style.overflow,
+    overflow: node.style.getPropertyValue("overflow"),
+    overflowPriority: node.style.getPropertyPriority("overflow"),
     maxHeight: node.style.maxHeight,
     height: node.style.height,
+    borderRadius: node.style.borderRadius,
+    boxShadow: node.style.boxShadow,
+    clipPath: node.style.clipPath,
+  }));
+  const previousPadding = paddedNodes.map((node) => ({
+    node,
+    ...copyComputedPadding(node),
   }));
 
-  for (const node of nodes) {
-    node.style.overflow = "visible";
+  for (const node of layoutNodes) {
+    node.style.setProperty("overflow", "visible", "important");
     node.style.maxHeight = "none";
     node.style.height = "auto";
+    node.style.borderRadius = "0";
+    node.style.boxShadow = "none";
+    node.style.clipPath = "none";
   }
 
   return () => {
-    for (const entry of previous) {
-      entry.node.style.overflow = entry.overflow;
+    for (const entry of previousLayout) {
+      if (entry.overflow) {
+        entry.node.style.setProperty(
+          "overflow",
+          entry.overflow,
+          entry.overflowPriority,
+        );
+      } else {
+        entry.node.style.removeProperty("overflow");
+      }
       entry.node.style.maxHeight = entry.maxHeight;
       entry.node.style.height = entry.height;
+      entry.node.style.borderRadius = entry.borderRadius;
+      entry.node.style.boxShadow = entry.boxShadow;
+      entry.node.style.clipPath = entry.clipPath;
+    }
+    for (const entry of previousPadding) {
+      entry.node.style.paddingTop = entry.paddingTop;
+      entry.node.style.paddingRight = entry.paddingRight;
+      entry.node.style.paddingBottom = entry.paddingBottom;
+      entry.node.style.paddingLeft = entry.paddingLeft;
     }
   };
 }
@@ -125,28 +201,29 @@ export async function captureChartElement(
   element: HTMLElement,
 ): Promise<HTMLCanvasElement> {
   const restoreHidden = revealHiddenChartAncestors(element);
-  const restoreScroll = expandScrollAreas(element);
+  const restoreLayout = prepareCaptureLayout(element);
   element.setAttribute(CHART_EXPORT_CAPTURING_ATTR, "");
 
   try {
     await new Promise<void>((resolve) => {
       requestAnimationFrame(() => resolve());
     });
-    const backgroundColor =
-      window.getComputedStyle(element).backgroundColor || "#ffffff";
     return html2canvas(element, {
       useCORS: true,
-      backgroundColor,
+      backgroundColor: null,
       logging: false,
       scale: CHART_CAPTURE_SCALE,
       imageTimeout: 0,
       ignoreElements: (node) =>
         node instanceof Element &&
         shouldIgnoreChartExportElement(node, element),
+      onclone: (_clonedDoc, clonedElement) => {
+        applyComputedPaddingToClone(element, clonedElement);
+      },
     });
   } finally {
     element.removeAttribute(CHART_EXPORT_CAPTURING_ATTR);
-    restoreScroll();
+    restoreLayout();
     restoreHidden();
   }
 }

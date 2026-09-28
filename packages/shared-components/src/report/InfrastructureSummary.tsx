@@ -27,18 +27,18 @@ const INFRA_TITLE = "Infrastructure summary";
 export const InfrastructureSummary: FC<InfrastructureSummaryProps> = ({
   summary,
 }) => (
-  <Card isFullHeight id={INFRA_CHART_ID}>
-    <CardTitle>
-      <Flex
-        justifyContent={{ default: "justifyContentSpaceBetween" }}
-        alignItems={{ default: "alignItemsCenter" }}
-      >
-        <FlexItem>{INFRA_TITLE}</FlexItem>
-        <ChartHeaderActions chartId={INFRA_CHART_ID} title={INFRA_TITLE} />
-      </Flex>
-    </CardTitle>
-    <CardBody>
-      <ChartExportSurface id={INFRA_CHART_ID} title={INFRA_TITLE}>
+  <ChartExportSurface id={INFRA_CHART_ID} title={INFRA_TITLE}>
+    <Card isFullHeight id={INFRA_CHART_ID}>
+      <CardTitle>
+        <Flex
+          justifyContent={{ default: "justifyContentSpaceBetween" }}
+          alignItems={{ default: "alignItemsCenter" }}
+        >
+          <FlexItem>{INFRA_TITLE}</FlexItem>
+          <ChartHeaderActions chartId={INFRA_CHART_ID} title={INFRA_TITLE} />
+        </Flex>
+      </CardTitle>
+      <CardBody>
         <DescriptionList isAutoFit displaySize="lg">
           <DescriptionListGroup>
             <DescriptionListTerm>VMware version</DescriptionListTerm>
@@ -65,9 +65,9 @@ export const InfrastructureSummary: FC<InfrastructureSummaryProps> = ({
             </DescriptionListDescription>
           </DescriptionListGroup>
         </DescriptionList>
-      </ChartExportSurface>
-    </CardBody>
-  </Card>
+      </CardBody>
+    </Card>
+  </ChartExportSurface>
 );
 
 InfrastructureSummary.displayName = "InfrastructureSummary";
