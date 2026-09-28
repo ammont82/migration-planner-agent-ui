@@ -96,6 +96,7 @@ function bulkExportViews(chart: RegisteredChart): ChartExportView[] {
 export function toBulkChartCaptureSources(
   charts: RegisteredChart[],
   capture: (element: HTMLElement) => Promise<HTMLCanvasElement>,
+  prepareElement?: (element: HTMLElement) => () => void,
 ): ChartCaptureSource[] {
   return charts.flatMap((chart) => {
     const views = bulkExportViews(chart);
@@ -109,10 +110,15 @@ export function toBulkChartCaptureSources(
           ? chartPngFilename(view.title, `${chart.id}-${view.id}`)
           : chart.filename),
       capture: async () => {
-        if (cyclesViews && chart.setExportView) {
-          await chart.setExportView(view.id);
+        const restore = prepareElement?.(chart.element);
+        try {
+          if (cyclesViews && chart.setExportView) {
+            await chart.setExportView(view.id);
+          }
+          return await capture(chart.element);
+        } finally {
+          restore?.();
         }
-        return capture(chart.element);
       },
     }));
   });
@@ -127,7 +133,11 @@ export async function restoreChartExportViews(
       chart.setExportView &&
       chart.activeExportViewId
     ) {
-      await chart.setExportView(chart.activeExportViewId);
+      try {
+        await chart.setExportView(chart.activeExportViewId);
+      } catch (error) {
+        console.error("Failed to restore the selected chart view:", error);
+      }
     }
   }
 }
@@ -152,6 +162,10 @@ export function sortRegisteredChartsByDocumentOrder(
 
 export function canvasToBlob(canvas: HTMLCanvasElement): Promise<Blob> {
   return new Promise((resolve, reject) => {
+    if (canvas.width < 1 || canvas.height < 1) {
+      reject(new Error("Failed to encode canvas as PNG"));
+      return;
+    }
     canvas.toBlob((blob) => {
       if (blob) {
         resolve(blob);

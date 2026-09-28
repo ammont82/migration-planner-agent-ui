@@ -78,6 +78,47 @@ describe("dropdown chart export views", () => {
 
     expect(activated).toEqual(["a", "b", "a"]);
   });
+
+  it("lays out hidden cards before switching dropdown views", async () => {
+    const element = document.createElement("div");
+    const order: string[] = [];
+    const charts = [
+      {
+        id: "vm",
+        title: "Visible",
+        filename: "visible.png",
+        element,
+        exportViews: [
+          { id: "a", title: "View A" },
+          { id: "b", title: "View B" },
+        ],
+        activeExportViewId: "a",
+        setExportView: async () => {
+          order.push("setView");
+        },
+      },
+    ];
+
+    const [source] = toBulkChartCaptureSources(
+      charts,
+      async () => {
+        order.push("capture");
+        const canvas = document.createElement("canvas");
+        canvas.width = 1;
+        canvas.height = 1;
+        return canvas;
+      },
+      () => {
+        order.push("prepare");
+        return () => {
+          order.push("restore");
+        };
+      },
+    );
+
+    await source.capture();
+    expect(order).toEqual(["prepare", "setView", "capture", "restore"]);
+  });
 });
 
 describe("sortRegisteredChartsByDocumentOrder", () => {

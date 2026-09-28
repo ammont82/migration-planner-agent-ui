@@ -60,16 +60,29 @@ describe("captureChartElement", () => {
     expect(panel.style.display).toBe("none");
   });
 
-  it("squares card corners so the title padding is not clipped", async () => {
+  it("keeps the card radius and paints a real border for the snapshot", async () => {
     const root = document.createElement("div");
     const card = document.createElement("div");
     card.className = "pf-v6-c-card";
     card.style.borderRadius = "16px";
+    card.style.backgroundColor = "rgb(255, 255, 255)";
+    card.style.border = "1px solid rgb(200, 200, 200)";
     root.append(card);
     document.body.append(root);
 
-    mockedHtml2Canvas.mockImplementation(async () => {
-      expect(card.style.borderRadius).toBe("0px");
+    mockedHtml2Canvas.mockImplementation(async (_element, options) => {
+      expect(card.style.borderRadius).toBe("16px");
+      expect(card.style.overflow).toBe("hidden");
+      expect(card.style.backgroundColor).toBe("rgb(255, 255, 255)");
+
+      const cloneRoot = document.createElement("div");
+      const cloneCard = document.createElement("div");
+      cloneCard.className = "pf-v6-c-card";
+      cloneRoot.append(cloneCard);
+      options?.onclone?.(document, cloneRoot);
+      expect(cloneCard.style.borderRadius).toBe("16px");
+      expect(cloneCard.style.overflow).toBe("hidden");
+
       const canvas = document.createElement("canvas");
       canvas.width = 1;
       canvas.height = 1;
@@ -81,7 +94,7 @@ describe("captureChartElement", () => {
     expect(card.style.borderRadius).toBe("16px");
   });
 
-  it("inlines computed card title padding so the snapshot keeps the inset", async () => {
+  it("inlines computed card title padding so content stays inset", async () => {
     const root = document.createElement("div");
     const title = document.createElement("div");
     title.className = "pf-v6-c-card__title";

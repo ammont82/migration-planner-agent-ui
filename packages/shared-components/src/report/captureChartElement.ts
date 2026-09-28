@@ -92,6 +92,22 @@ export function revealHiddenChartAncestors(element: HTMLElement): () => void {
 
 const PADDED_CAPTURE_SELECTOR =
   ".pf-v6-c-card__title, .pf-v6-c-card__header, .pf-v6-c-card__body";
+const CARD_CAPTURE_SELECTOR = ".pf-v6-c-card";
+const TRANSPARENT_FILLS = new Set(["", "transparent", "rgba(0, 0, 0, 0)"]);
+
+function queryCards(root: HTMLElement): HTMLElement[] {
+  const cards = Array.from(
+    root.querySelectorAll<HTMLElement>(CARD_CAPTURE_SELECTOR),
+  );
+  if (root.matches(CARD_CAPTURE_SELECTOR)) {
+    cards.unshift(root);
+  }
+  return cards;
+}
+
+function resolvedFill(color: string): string {
+  return TRANSPARENT_FILLS.has(color) ? "#ffffff" : color;
+}
 
 function applyComputedPadding(source: HTMLElement, dest: HTMLElement): void {
   const computed = window.getComputedStyle(source);
@@ -99,6 +115,32 @@ function applyComputedPadding(source: HTMLElement, dest: HTMLElement): void {
   dest.style.paddingRight = computed.paddingRight;
   dest.style.paddingBottom = computed.paddingBottom;
   dest.style.paddingLeft = computed.paddingLeft;
+}
+
+function applyCardChrome(source: HTMLElement, dest: HTMLElement): void {
+  const computed = window.getComputedStyle(source);
+  const before = window.getComputedStyle(source, "::before");
+  dest.style.borderRadius = computed.borderRadius;
+  dest.style.backgroundColor = resolvedFill(computed.backgroundColor);
+  dest.style.overflow = "hidden";
+
+  const borderWidth =
+    before.borderTopWidth !== "0px"
+      ? before.borderTopWidth
+      : computed.borderTopWidth;
+  const borderStyle =
+    before.borderTopStyle !== "none"
+      ? before.borderTopStyle
+      : computed.borderTopStyle;
+  const borderColor =
+    before.borderTopColor !== "rgba(0, 0, 0, 0)"
+      ? before.borderTopColor
+      : computed.borderTopColor;
+  if (borderWidth !== "0px" && borderStyle !== "none") {
+    dest.style.borderWidth = borderWidth;
+    dest.style.borderStyle = borderStyle;
+    dest.style.borderColor = borderColor;
+  }
 }
 
 function copyComputedPadding(node: HTMLElement): {
@@ -117,10 +159,56 @@ function copyComputedPadding(node: HTMLElement): {
   return previous;
 }
 
-function applyComputedPaddingToClone(
+function copyCardChrome(node: HTMLElement): {
+  borderRadius: string;
+  backgroundColor: string;
+  overflow: string;
+  overflowPriority: string;
+  borderWidth: string;
+  borderStyle: string;
+  borderColor: string;
+  minHeight: string;
+  height: string;
+  maxHeight: string;
+} {
+  const previous = {
+    borderRadius: node.style.borderRadius,
+    backgroundColor: node.style.backgroundColor,
+    overflow: node.style.getPropertyValue("overflow"),
+    overflowPriority: node.style.getPropertyPriority("overflow"),
+    borderWidth: node.style.borderWidth,
+    borderStyle: node.style.borderStyle,
+    borderColor: node.style.borderColor,
+    minHeight: node.style.minHeight,
+    height: node.style.height,
+    maxHeight: node.style.maxHeight,
+  };
+  applyCardChrome(node, node);
+  node.style.minHeight = "0px";
+  node.style.height = "auto";
+  node.style.maxHeight = "none";
+  return previous;
+}
+
+function applyComputedStylesToClone(
   sourceRoot: HTMLElement,
   clonedRoot: HTMLElement,
+  clonedDoc: Document,
 ): void {
+  const hideBefore = clonedDoc.createElement("style");
+  hideBefore.textContent =
+    ".pf-v6-c-card::before { content: none !important; display: none !important; }";
+  clonedRoot.prepend(hideBefore);
+
+  const sourceCards = queryCards(sourceRoot);
+  const cloneCards = queryCards(clonedRoot);
+  sourceCards.forEach((source, index) => {
+    const dest = cloneCards[index];
+    if (dest) {
+      applyCardChrome(source, dest);
+    }
+  });
+
   const sources = sourceRoot.querySelectorAll<HTMLElement>(
     PADDED_CAPTURE_SELECTOR,
   );
@@ -136,43 +224,42 @@ function applyComputedPaddingToClone(
 }
 
 function prepareCaptureLayout(element: HTMLElement): () => void {
-  const layoutNodes = [
+  const expandNodes = [
     element,
     ...Array.from(
       element.querySelectorAll<HTMLElement>(
-        `[${CHART_EXPORT_SCROLL_ATTR}], .pf-v6-c-card, .pf-v6-c-card__body`,
+        `[${CHART_EXPORT_SCROLL_ATTR}], .pf-v6-c-card__body`,
       ),
     ),
   ];
+  const cards = queryCards(element);
   const paddedNodes = Array.from(
     element.querySelectorAll<HTMLElement>(PADDED_CAPTURE_SELECTOR),
   );
-  const previousLayout = layoutNodes.map((node) => ({
+  const previousExpand = expandNodes.map((node) => ({
     node,
     overflow: node.style.getPropertyValue("overflow"),
     overflowPriority: node.style.getPropertyPriority("overflow"),
     maxHeight: node.style.maxHeight,
     height: node.style.height,
-    borderRadius: node.style.borderRadius,
-    boxShadow: node.style.boxShadow,
-    clipPath: node.style.clipPath,
+  }));
+  const previousChrome = cards.map((node) => ({
+    node,
+    ...copyCardChrome(node),
   }));
   const previousPadding = paddedNodes.map((node) => ({
     node,
     ...copyComputedPadding(node),
   }));
 
-  for (const node of layoutNodes) {
+  for (const node of expandNodes) {
     node.style.setProperty("overflow", "visible", "important");
     node.style.maxHeight = "none";
     node.style.height = "auto";
-    node.style.borderRadius = "0";
-    node.style.boxShadow = "none";
-    node.style.clipPath = "none";
   }
 
   return () => {
-    for (const entry of previousLayout) {
+    for (const entry of previousExpand) {
       if (entry.overflow) {
         entry.node.style.setProperty(
           "overflow",
@@ -184,9 +271,25 @@ function prepareCaptureLayout(element: HTMLElement): () => void {
       }
       entry.node.style.maxHeight = entry.maxHeight;
       entry.node.style.height = entry.height;
+    }
+    for (const entry of previousChrome) {
       entry.node.style.borderRadius = entry.borderRadius;
-      entry.node.style.boxShadow = entry.boxShadow;
-      entry.node.style.clipPath = entry.clipPath;
+      entry.node.style.backgroundColor = entry.backgroundColor;
+      if (entry.overflow) {
+        entry.node.style.setProperty(
+          "overflow",
+          entry.overflow,
+          entry.overflowPriority,
+        );
+      } else {
+        entry.node.style.removeProperty("overflow");
+      }
+      entry.node.style.borderWidth = entry.borderWidth;
+      entry.node.style.borderStyle = entry.borderStyle;
+      entry.node.style.borderColor = entry.borderColor;
+      entry.node.style.minHeight = entry.minHeight;
+      entry.node.style.height = entry.height;
+      entry.node.style.maxHeight = entry.maxHeight;
     }
     for (const entry of previousPadding) {
       entry.node.style.paddingTop = entry.paddingTop;
@@ -208,6 +311,11 @@ export async function captureChartElement(
     await new Promise<void>((resolve) => {
       requestAnimationFrame(() => resolve());
     });
+    if (element.getBoundingClientRect().width < 1) {
+      await new Promise<void>((resolve) => {
+        requestAnimationFrame(() => resolve());
+      });
+    }
     return html2canvas(element, {
       useCORS: true,
       backgroundColor: null,
@@ -217,8 +325,8 @@ export async function captureChartElement(
       ignoreElements: (node) =>
         node instanceof Element &&
         shouldIgnoreChartExportElement(node, element),
-      onclone: (_clonedDoc, clonedElement) => {
-        applyComputedPaddingToClone(element, clonedElement);
+      onclone: (clonedDoc, clonedElement) => {
+        applyComputedStylesToClone(element, clonedElement, clonedDoc);
       },
     });
   } finally {

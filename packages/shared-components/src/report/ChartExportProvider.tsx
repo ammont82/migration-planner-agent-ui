@@ -75,6 +75,18 @@ async function resolveCapture(
   return captureChartElement;
 }
 
+async function resolvePrepareElement(
+  overrideCapture?: CaptureChartElement,
+): Promise<((element: HTMLElement) => () => void) | undefined> {
+  if (overrideCapture) {
+    return undefined;
+  }
+  const { revealHiddenChartAncestors } = await import(
+    "./captureChartElement.js"
+  );
+  return revealHiddenChartAncestors;
+}
+
 async function resolveZip(override?: ZipChartFiles): Promise<ZipChartFiles> {
   if (override) {
     return override;
@@ -106,8 +118,9 @@ async function resolveHtml(
 function toCaptureSources(
   charts: RegisteredChart[],
   capture: CaptureChartElement,
+  prepareElement?: (element: HTMLElement) => () => void,
 ): ChartCaptureSource[] {
-  return toBulkChartCaptureSources(charts, capture);
+  return toBulkChartCaptureSources(charts, capture, prepareElement);
 }
 
 export const ChartExportProvider: FC<ChartExportProviderProps> = ({
@@ -229,9 +242,14 @@ export const ChartExportProvider: FC<ChartExportProviderProps> = ({
           throw new Error("The report is not ready to export yet.");
         }
         const captureFn = await resolveCapture(capture);
+        const prepareElement = await resolvePrepareElement(capture);
         const zipFn = await resolveZip(zipFiles);
         const files: ChartExportFile[] = [];
-        const sources = toBulkChartCaptureSources(charts, captureFn);
+        const sources = toBulkChartCaptureSources(
+          charts,
+          captureFn,
+          prepareElement,
+        );
         try {
           for (const [index, source] of sources.entries()) {
             const canvas = await source.capture();
@@ -271,10 +289,14 @@ export const ChartExportProvider: FC<ChartExportProviderProps> = ({
             throw new Error("The report is not ready to export yet.");
           }
           const captureFn = await resolveCapture(capture);
+          const prepareElement = await resolvePrepareElement(capture);
           const build = await resolvePdf(buildPdf);
           try {
             downloadFile(
-              await build(toCaptureSources(charts, captureFn), documentTitle),
+              await build(
+                toCaptureSources(charts, captureFn, prepareElement),
+                documentTitle,
+              ),
               getPdfFilename(),
             );
           } finally {
@@ -297,10 +319,14 @@ export const ChartExportProvider: FC<ChartExportProviderProps> = ({
             throw new Error("The report is not ready to export yet.");
           }
           const captureFn = await resolveCapture(capture);
+          const prepareElement = await resolvePrepareElement(capture);
           const build = await resolveHtml(buildHtml);
           try {
             downloadFile(
-              await build(toCaptureSources(charts, captureFn), documentTitle),
+              await build(
+                toCaptureSources(charts, captureFn, prepareElement),
+                documentTitle,
+              ),
               getHtmlFilename(),
             );
           } finally {

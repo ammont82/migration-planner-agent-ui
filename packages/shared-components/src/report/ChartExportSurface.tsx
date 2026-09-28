@@ -1,5 +1,4 @@
-import { type FC, type ReactNode, useCallback } from "react";
-import { flushSync } from "react-dom";
+import { type FC, type ReactNode, useCallback, useRef } from "react";
 import {
   type ChartExportView,
   chartExportRootStyle,
@@ -24,18 +23,21 @@ export const ChartExportSurface: FC<{
   onExportViewChange,
   children,
 }) => {
-  const setExportView = useCallback(
-    async (viewId: string) => {
-      if (!onExportViewChange) {
-        return;
-      }
-      flushSync(() => {
-        onExportViewChange(viewId);
+  const activeViewRef = useRef(activeExportViewId);
+  activeViewRef.current = activeExportViewId;
+  const onExportViewChangeRef = useRef(onExportViewChange);
+  onExportViewChangeRef.current = onExportViewChange;
+
+  const setExportView = useCallback(async (viewId: string) => {
+    const change = onExportViewChangeRef.current;
+    if (change && activeViewRef.current !== viewId) {
+      change(viewId);
+      await new Promise<void>((resolve) => {
+        window.setTimeout(resolve, 0);
       });
-      await waitForChartExportPaint();
-    },
-    [onExportViewChange],
-  );
+    }
+    await waitForChartExportPaint();
+  }, []);
 
   const ref = useRegisterChart({
     id,
