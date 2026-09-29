@@ -206,7 +206,7 @@ export const VCenterClusterDetails: FC<VCenterClusterDetailsProps> = ({
     id={CLUSTER_DETAILS_CHART_ID}
     title={CLUSTER_DETAILS_TITLE}
   >
-    <Card isFullHeight id={CLUSTER_DETAILS_CHART_ID}>
+    <Card isFullHeight>
       <CardTitle>
         <Flex
           justifyContent={{ default: "justifyContentSpaceBetween" }}

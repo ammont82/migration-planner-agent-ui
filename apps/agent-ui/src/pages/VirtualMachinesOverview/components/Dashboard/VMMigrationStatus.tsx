@@ -152,7 +152,7 @@ export const VMMigrationStatus: React.FC<VmMigrationStatusProps> = ({
       activeExportViewId={viewMode}
       onExportViewChange={(viewId) => setViewMode(viewId as ViewMode)}
     >
-      <Card className={dashboardStyles.card} id={chartId}>
+      <Card className={dashboardStyles.card}>
         <CardTitle>
           <Flex
             alignItems={{ default: "alignItemsCenter" }}

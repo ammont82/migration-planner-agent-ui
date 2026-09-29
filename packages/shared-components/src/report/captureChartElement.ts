@@ -117,6 +117,8 @@ function applyComputedPadding(source: HTMLElement, dest: HTMLElement): void {
   dest.style.paddingLeft = computed.paddingLeft;
 }
 
+const CARD_BORDER_WIDTH_VAR = "--pf-v6-c-card--BorderWidth";
+
 function applyCardChrome(source: HTMLElement, dest: HTMLElement): void {
   const computed = window.getComputedStyle(source);
   const before = window.getComputedStyle(source, "::before");
@@ -125,15 +127,15 @@ function applyCardChrome(source: HTMLElement, dest: HTMLElement): void {
   dest.style.overflow = "hidden";
 
   const borderWidth =
-    before.borderTopWidth !== "0px"
+    before.borderTopWidth && before.borderTopWidth !== "0px"
       ? before.borderTopWidth
       : computed.borderTopWidth;
   const borderStyle =
-    before.borderTopStyle !== "none"
+    before.borderTopStyle && before.borderTopStyle !== "none"
       ? before.borderTopStyle
       : computed.borderTopStyle;
   const borderColor =
-    before.borderTopColor !== "rgba(0, 0, 0, 0)"
+    before.borderTopColor && before.borderTopColor !== "rgba(0, 0, 0, 0)"
       ? before.borderTopColor
       : computed.borderTopColor;
   if (borderWidth !== "0px" && borderStyle !== "none") {
@@ -141,6 +143,9 @@ function applyCardChrome(source: HTMLElement, dest: HTMLElement): void {
     dest.style.borderStyle = borderStyle;
     dest.style.borderColor = borderColor;
   }
+  // PF draws the border on ::before via this token. html2canvas still paints
+  // that pseudo even if a stylesheet sets content:none, so collapse it here.
+  dest.style.setProperty(CARD_BORDER_WIDTH_VAR, "0px");
 }
 
 function copyComputedPadding(node: HTMLElement): {
@@ -170,6 +175,8 @@ function copyCardChrome(node: HTMLElement): {
   minHeight: string;
   height: string;
   maxHeight: string;
+  borderWidthVar: string;
+  borderWidthVarPriority: string;
 } {
   const previous = {
     borderRadius: node.style.borderRadius,
@@ -182,6 +189,10 @@ function copyCardChrome(node: HTMLElement): {
     minHeight: node.style.minHeight,
     height: node.style.height,
     maxHeight: node.style.maxHeight,
+    borderWidthVar: node.style.getPropertyValue(CARD_BORDER_WIDTH_VAR),
+    borderWidthVarPriority: node.style.getPropertyPriority(
+      CARD_BORDER_WIDTH_VAR,
+    ),
   };
   applyCardChrome(node, node);
   node.style.minHeight = "0px";
@@ -193,13 +204,7 @@ function copyCardChrome(node: HTMLElement): {
 function applyComputedStylesToClone(
   sourceRoot: HTMLElement,
   clonedRoot: HTMLElement,
-  clonedDoc: Document,
 ): void {
-  const hideBefore = clonedDoc.createElement("style");
-  hideBefore.textContent =
-    ".pf-v6-c-card::before { content: none !important; display: none !important; }";
-  clonedRoot.prepend(hideBefore);
-
   const sourceCards = queryCards(sourceRoot);
   const cloneCards = queryCards(clonedRoot);
   sourceCards.forEach((source, index) => {
@@ -290,6 +295,15 @@ function prepareCaptureLayout(element: HTMLElement): () => void {
       entry.node.style.minHeight = entry.minHeight;
       entry.node.style.height = entry.height;
       entry.node.style.maxHeight = entry.maxHeight;
+      if (entry.borderWidthVar) {
+        entry.node.style.setProperty(
+          CARD_BORDER_WIDTH_VAR,
+          entry.borderWidthVar,
+          entry.borderWidthVarPriority,
+        );
+      } else {
+        entry.node.style.removeProperty(CARD_BORDER_WIDTH_VAR);
+      }
     }
     for (const entry of previousPadding) {
       entry.node.style.paddingTop = entry.paddingTop;
@@ -325,8 +339,8 @@ export async function captureChartElement(
       ignoreElements: (node) =>
         node instanceof Element &&
         shouldIgnoreChartExportElement(node, element),
-      onclone: (clonedDoc, clonedElement) => {
-        applyComputedStylesToClone(element, clonedElement, clonedDoc);
+      onclone: (_clonedDoc, clonedElement) => {
+        applyComputedStylesToClone(element, clonedElement);
       },
     });
   } finally {

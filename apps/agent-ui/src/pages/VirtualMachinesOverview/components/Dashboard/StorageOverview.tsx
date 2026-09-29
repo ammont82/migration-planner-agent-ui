@@ -416,7 +416,6 @@ export const StorageOverview: React.FC<StorageOverviewProps> = ({
     >
       <Card
         className={`${dashboardStyles.card} ${dashboardStyles.storageCardOverflowHidden}`}
-        id={chartId}
       >
         <CardTitle>
           <Flex

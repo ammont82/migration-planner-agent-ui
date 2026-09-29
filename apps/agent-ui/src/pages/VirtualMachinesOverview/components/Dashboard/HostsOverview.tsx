@@ -90,7 +90,7 @@ export const HostsOverview: React.FC<HostsOverviewProps> = ({ hosts = [] }) => {
   const chartTitle = "Host distribution by model";
   return (
     <ChartExportSurface id={chartId} title={chartTitle}>
-      <Card className={dashboardStyles.card} id={chartId}>
+      <Card className={dashboardStyles.card}>
         <CardTitle>
           <Flex
             justifyContent={{ default: "justifyContentSpaceBetween" }}

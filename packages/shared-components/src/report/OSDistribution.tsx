@@ -58,7 +58,7 @@ export const OSDistribution: FC<OSDistributionProps> = ({ osData }) => (
     id={OS_DISTRIBUTION_CHART_ID}
     title={OS_DISTRIBUTION_TITLE}
   >
-    <Card className={dashboardStyles.card} id={OS_DISTRIBUTION_CHART_ID}>
+    <Card className={dashboardStyles.card}>
       <CardTitle>
         <Flex
           justifyContent={{ default: "justifyContentSpaceBetween" }}

@@ -264,11 +264,7 @@ export const NetworkOverview: React.FC<NetworkOverviewProps> = ({
       activeExportViewId={viewMode}
       onExportViewChange={(viewId) => setViewMode(viewId as ViewMode)}
     >
-      <Card
-        className={dashboardStyles.card}
-        id={chartId}
-        style={{ overflow: "hidden" }}
-      >
+      <Card className={dashboardStyles.card} style={{ overflow: "hidden" }}>
         <CardTitle>
           <Flex
             justifyContent={{ default: "justifyContentSpaceBetween" }}

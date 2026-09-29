@@ -51,7 +51,7 @@ export const ChartExportSurface: FC<{
         : undefined,
   });
   return (
-    <div ref={ref} style={chartExportRootStyle}>
+    <div ref={ref} id={id} style={chartExportRootStyle}>
       {children}
     </div>
   );

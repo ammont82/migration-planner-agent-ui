@@ -42,7 +42,7 @@ export const PowerStateCard: FC<PowerStateCardProps> = ({
   legendVariant = "html",
 }) => (
   <ChartExportSurface id={id} title={title}>
-    <Card className={dashboardStyles.card} id={id}>
+    <Card className={dashboardStyles.card}>
       <CardTitle>
         <Flex
           justifyContent={{ default: "justifyContentSpaceBetween" }}

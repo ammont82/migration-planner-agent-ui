@@ -74,6 +74,9 @@ describe("captureChartElement", () => {
       expect(card.style.borderRadius).toBe("16px");
       expect(card.style.overflow).toBe("hidden");
       expect(card.style.backgroundColor).toBe("rgb(255, 255, 255)");
+      expect(card.style.getPropertyValue("--pf-v6-c-card--BorderWidth")).toBe(
+        "0px",
+      );
 
       const cloneRoot = document.createElement("div");
       const cloneCard = document.createElement("div");
@@ -82,6 +85,9 @@ describe("captureChartElement", () => {
       options?.onclone?.(document, cloneRoot);
       expect(cloneCard.style.borderRadius).toBe("16px");
       expect(cloneCard.style.overflow).toBe("hidden");
+      expect(
+        cloneCard.style.getPropertyValue("--pf-v6-c-card--BorderWidth"),
+      ).toBe("0px");
 
       const canvas = document.createElement("canvas");
       canvas.width = 1;
@@ -92,6 +98,7 @@ describe("captureChartElement", () => {
     await captureChartElement(root);
 
     expect(card.style.borderRadius).toBe("16px");
+    expect(card.style.getPropertyValue("--pf-v6-c-card--BorderWidth")).toBe("");
   });
 
   it("inlines computed card title padding so content stays inset", async () => {

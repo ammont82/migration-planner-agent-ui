@@ -153,7 +153,7 @@ export const CpuAndMemoryOverview: React.FC<CpuAndMemoryOverviewProps> = ({
       activeExportViewId={viewMode}
       onExportViewChange={(viewId) => setViewMode(viewId as ViewMode)}
     >
-      <Card className={dashboardStyles.card} id={chartId}>
+      <Card className={dashboardStyles.card}>
         <CardTitle>
           <Flex
             justifyContent={{ default: "justifyContentSpaceBetween" }}

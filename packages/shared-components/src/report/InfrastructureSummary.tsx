@@ -28,7 +28,7 @@ export const InfrastructureSummary: FC<InfrastructureSummaryProps> = ({
   summary,
 }) => (
   <ChartExportSurface id={INFRA_CHART_ID} title={INFRA_TITLE}>
-    <Card isFullHeight id={INFRA_CHART_ID}>
+    <Card isFullHeight>
       <CardTitle>
         <Flex
           justifyContent={{ default: "justifyContentSpaceBetween" }}

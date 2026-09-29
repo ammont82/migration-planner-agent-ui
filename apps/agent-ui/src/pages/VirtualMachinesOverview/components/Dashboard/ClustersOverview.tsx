@@ -327,11 +327,7 @@ export const ClustersOverview: React.FC<ClustersOverviewProps> = ({
       activeExportViewId={viewMode}
       onExportViewChange={(viewId) => setViewMode(viewId as ViewMode)}
     >
-      <Card
-        className={dashboardStyles.card}
-        id={chartId}
-        style={{ overflow: "hidden" }}
-      >
+      <Card className={dashboardStyles.card} style={{ overflow: "hidden" }}>
         <CardTitle>
           <Flex
             justifyContent={{ default: "justifyContentSpaceBetween" }}

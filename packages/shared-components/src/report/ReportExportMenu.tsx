@@ -1,4 +1,3 @@
-import { css } from "@emotion/css";
 import {
   Dropdown,
   DropdownItem,
@@ -14,26 +13,6 @@ import {
   type StandardReportExportHandlers,
   standardReportExportOptions,
 } from "./reportExportOptions.js";
-
-const dropdownListReset = css`
-  margin: 0 !important;
-  padding: 0 !important;
-
-  .pf-v6-c-menu__list-item {
-    background-color: var(
-      --pf-t--global--background--color--primary--default
-    ) !important;
-  }
-  .pf-v6-c-menu__list-item:hover {
-    background-color: var(
-      --pf-t--global--background--color--primary--hover
-    ) !important;
-  }
-`;
-
-const menuToggleGap = css`
-  --pf-v6-c-menu-toggle--Gap: var(--pf-t--global--spacer--sm);
-`;
 
 export interface ReportExportMenuProps {
   options: ReportExportOption[];
@@ -79,7 +58,6 @@ export const ReportExportMenu: FC<ReportExportMenuProps> = ({
           variant="secondary"
           isDisabled={isLoading || isDisabled}
           aria-label="Export report options"
-          className={menuToggleGap}
           icon={
             isLoading ? (
               <Spinner size="sm" aria-hidden="true" />
@@ -92,7 +70,7 @@ export const ReportExportMenu: FC<ReportExportMenuProps> = ({
         </MenuToggle>
       )}
     >
-      <DropdownList className={dropdownListReset}>
+      <DropdownList>
         {options.map((option) => (
           <DropdownItem
             key={option.key}
