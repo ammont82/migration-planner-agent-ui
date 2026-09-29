@@ -23,6 +23,35 @@ export function splitSegmentForPageHeight(
   return slices;
 }
 
+export function fitPdfImageSize(
+  pixelWidth: number,
+  pixelHeight: number,
+  maxWidthMm: number,
+  maxHeightMm: number,
+): { widthMm: number; heightMm: number } {
+  const safeWidth = Math.max(1, pixelWidth);
+  const safeHeight = Math.max(1, pixelHeight);
+  const widthScale = maxWidthMm / safeWidth;
+  const heightAtFullWidth = safeHeight * widthScale;
+  if (heightAtFullWidth <= maxHeightMm) {
+    return { widthMm: maxWidthMm, heightMm: heightAtFullWidth };
+  }
+  const scale = maxHeightMm / safeHeight;
+  return { widthMm: safeWidth * scale, heightMm: maxHeightMm };
+}
+
+export function placePdfBlock(
+  cursorY: number | null,
+  blockHeightMm: number,
+  pageTopMm: number,
+  pageBottomMm: number,
+): { y: number; needsNewPage: boolean } {
+  if (cursorY === null || cursorY + blockHeightMm > pageBottomMm) {
+    return { y: pageTopMm, needsNewPage: true };
+  }
+  return { y: cursorY, needsNewPage: false };
+}
+
 export function sliceCanvas(
   sourceCanvas: HTMLCanvasElement,
   width: number,

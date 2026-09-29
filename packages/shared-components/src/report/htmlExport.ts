@@ -46,10 +46,8 @@ export function buildHtmlReport(
     h2 { font-size: 18px; margin: 32px 0 12px; }
     .meta { color: #6a6e73; margin-bottom: 24px; }
     img {
-      max-width: 100%;
+      width: 100%;
       height: auto;
-      border: 1px solid #d2d2d2;
-      border-radius: 8px;
     }
   </style>
 </head>
