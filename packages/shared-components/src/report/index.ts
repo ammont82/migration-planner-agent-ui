@@ -4,6 +4,54 @@ export {
   type CardEmptyStateProps,
 } from "./CardEmptyState.js";
 export {
+  ChartDownloadButton,
+  ChartHeaderActions,
+} from "./ChartDownloadButton.js";
+export {
+  type BuildChartDocument,
+  type CaptureChartElement,
+  ChartExportProvider,
+  type ChartExportProviderProps,
+  type EncodeChartPng,
+  type ZipChartFiles,
+} from "./ChartExportProvider.js";
+export { ChartExportSurface } from "./ChartExportSurface.js";
+export { captureChartElement } from "./captureChartElement.js";
+export {
+  CHART_EXPORT_CAPTURING_ATTR,
+  CHART_EXPORT_HIDE_ATTR,
+  CHART_EXPORT_SCROLL_ATTR,
+  type ChartCaptureSource,
+  type ChartExportFile,
+  type ChartExportMeta,
+  type ChartExportView,
+  canvasToBlob,
+  chartExportHideProps,
+  chartExportRootStyle,
+  chartExportScrollProps,
+  chartExportViewsFromLabels,
+  chartPngFilename,
+  downloadBlob,
+  type RegisteredChart,
+  releaseCanvas,
+  restoreChartExportViews,
+  shouldIgnoreChartExportElement,
+  slugifyExportName,
+  sortRegisteredChartsByDocumentOrder,
+  toBulkChartCaptureSources,
+} from "./chartExport.js";
+export {
+  type ChartExportApi,
+  type ChartExportFormat,
+  useChartExport,
+  useRegisterChart,
+} from "./chartExportContext.js";
+export {
+  getChartExportFilename,
+  getChartZipFilename,
+  getDatedChartExportBasename,
+} from "./chartExportFilenames.js";
+export {
   chartColorFailure,
   chartColorSuccess,
   REPORT_CARD_EMPTY_STATE_TITLES,
@@ -25,6 +73,12 @@ export {
   HostPowerStates,
   type HostPowerStatesProps,
 } from "./HostPowerStates.js";
+export {
+  buildHtmlFromCharts,
+  buildHtmlReport,
+  escapeHtml,
+  type HtmlReportImage,
+} from "./htmlExport.js";
 export {
   InfrastructureSummary,
   type InfrastructureSummaryProps,
@@ -86,6 +140,12 @@ export {
   PowerStateCard,
   type PowerStateCardProps,
 } from "./PowerStateCard.js";
+export { buildPdfFromCharts } from "./pdfExport.js";
+export {
+  type PdfExportSegment,
+  sliceCanvas,
+  splitSegmentForPageHeight,
+} from "./pdfPage.js";
 export type { PowerStateChartModel } from "./powerStates.js";
 export {
   buildHostPowerStateChart,
@@ -93,6 +153,17 @@ export {
   HOST_POWER_COLORS,
   VM_POWER_COLORS,
 } from "./powerStates.js";
+export {
+  ExportReportButton,
+  type ExportReportButtonProps,
+  ReportExportMenu,
+  type ReportExportMenuProps,
+} from "./ReportExportMenu.js";
+export {
+  type ReportExportOption,
+  type StandardReportExportHandlers,
+  standardReportExportOptions,
+} from "./reportExportOptions.js";
 export { SupportTierBadge } from "./SupportTierBadge.js";
 export {
   ALL_TIERS_FILTER,
@@ -108,3 +179,4 @@ export {
   VmPowerStates,
   type VmPowerStatesProps,
 } from "./VmPowerStates.js";
+export { zipChartPngs } from "./zipChartPngs.js";
