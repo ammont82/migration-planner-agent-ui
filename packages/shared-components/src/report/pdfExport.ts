@@ -1,8 +1,9 @@
 import jsPDF from "jspdf";
 import { type ChartCaptureSource, releaseCanvas } from "./chartExport.js";
-import { sliceCanvas, splitSegmentForPageHeight } from "./pdfPage.js";
+import { fitPdfImageSize, placePdfBlock, sliceCanvas } from "./pdfPage.js";
 
 const MARGIN_MM = 10;
+const GAP_MM = 8;
 /** Flatten captures onto white; jsPDF cannot embed transparent PNG alpha cleanly. */
 const PAGE_BACKGROUND = "#ffffff";
 
@@ -15,6 +16,8 @@ export async function buildPdfFromCharts(
   const pageHeight = pdf.internal.pageSize.getHeight();
   const contentWidth = pageWidth - MARGIN_MM * 2;
   const contentHeight = pageHeight - MARGIN_MM * 2;
+  const pageTop = MARGIN_MM;
+  const pageBottom = pageHeight - MARGIN_MM;
 
   addCoverPage(
     pdf,
@@ -24,47 +27,37 @@ export async function buildPdfFromCharts(
     pageHeight,
   );
 
+  let cursorY: number | null = null;
   for (const chart of charts) {
     const canvas = await chart.capture();
     try {
       if (canvas.width < 1 || canvas.height < 1) {
         throw new Error("Chart capture produced an empty image");
       }
-      pdf.addPage();
-      const scaleFactor = contentWidth / Math.max(1, canvas.width);
-      const pageHeightPx = contentHeight / scaleFactor;
-      const segments = splitSegmentForPageHeight(
-        { top: 0, height: canvas.height },
+      const size = fitPdfImageSize(
+        canvas.width,
         canvas.height,
-        pageHeightPx,
+        contentWidth,
+        contentHeight,
       );
-
-      for (let index = 0; index < segments.length; index++) {
-        if (index > 0) {
-          pdf.addPage();
-        }
-        const segment = segments[index];
-        const sliceHeight = Math.max(
-          1,
-          Math.min(segment.height, canvas.height - segment.top),
-        );
-        const pageCanvas = sliceCanvas(
-          canvas,
-          canvas.width,
-          sliceHeight,
-          segment.top,
-          PAGE_BACKGROUND,
-        );
-        addCanvasPage(
-          pdf,
-          pageCanvas,
-          sliceHeight,
-          contentWidth,
-          contentHeight,
-          MARGIN_MM,
-        );
-        releaseCanvas(pageCanvas);
+      const placement = placePdfBlock(
+        cursorY,
+        size.heightMm,
+        pageTop,
+        pageBottom,
+      );
+      if (placement.needsNewPage) {
+        pdf.addPage();
       }
+      addChartImage(
+        pdf,
+        canvas,
+        MARGIN_MM + (contentWidth - size.widthMm) / 2,
+        placement.y,
+        size.widthMm,
+        size.heightMm,
+      );
+      cursorY = placement.y + size.heightMm + GAP_MM;
     } finally {
       releaseCanvas(canvas);
     }
@@ -116,33 +109,33 @@ function addCoverPage(
   }
 }
 
-function addCanvasPage(
+function addChartImage(
   pdf: jsPDF,
   canvas: HTMLCanvasElement,
-  sliceHeightPx: number,
-  contentWidth: number,
-  contentHeight: number,
-  margin: number,
+  x: number,
+  y: number,
+  widthMm: number,
+  heightMm: number,
 ): void {
-  if (canvas.width < 1 || canvas.height < 1) {
-    throw new Error("Chart capture produced an empty image");
+  const flattened = sliceCanvas(
+    canvas,
+    canvas.width,
+    canvas.height,
+    0,
+    PAGE_BACKGROUND,
+  );
+  try {
+    pdf.addImage(
+      flattened.toDataURL("image/jpeg", 0.92),
+      "JPEG",
+      x,
+      y,
+      widthMm,
+      heightMm,
+    );
+  } finally {
+    releaseCanvas(flattened);
   }
-  // JPEG is opaque. jsPDF's PNG path mishandles canvas alpha (black fills / failed export).
-  const imageData = canvas.toDataURL("image/jpeg", 0.92);
-  const pageScale = Math.min(
-    contentWidth / canvas.width,
-    contentHeight / sliceHeightPx,
-  );
-  const renderWidthMm = canvas.width * pageScale;
-  const renderHeightMm = sliceHeightPx * pageScale;
-  pdf.addImage(
-    imageData,
-    "JPEG",
-    margin + (contentWidth - renderWidthMm) / 2,
-    margin,
-    renderWidthMm,
-    renderHeightMm,
-  );
 }
 
 function addPageNumbers(

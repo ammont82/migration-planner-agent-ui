@@ -117,35 +117,65 @@ function applyComputedPadding(source: HTMLElement, dest: HTMLElement): void {
   dest.style.paddingLeft = computed.paddingLeft;
 }
 
-const CARD_BORDER_WIDTH_VAR = "--pf-v6-c-card--BorderWidth";
-
-function applyCardChrome(source: HTMLElement, dest: HTMLElement): void {
+function readCardBorder(source: HTMLElement): {
+  width: string;
+  style: string;
+  color: string;
+} | null {
+  if (source.style.borderWidth && source.style.borderStyle) {
+    return {
+      width: source.style.borderWidth,
+      style: source.style.borderStyle,
+      color: source.style.borderColor,
+    };
+  }
   const computed = window.getComputedStyle(source);
   const before = window.getComputedStyle(source, "::before");
-  dest.style.borderRadius = computed.borderRadius;
-  dest.style.backgroundColor = resolvedFill(computed.backgroundColor);
-  dest.style.overflow = "hidden";
-
-  const borderWidth =
+  const width =
     before.borderTopWidth && before.borderTopWidth !== "0px"
       ? before.borderTopWidth
       : computed.borderTopWidth;
-  const borderStyle =
+  const style =
     before.borderTopStyle && before.borderTopStyle !== "none"
       ? before.borderTopStyle
       : computed.borderTopStyle;
-  const borderColor =
+  const color =
     before.borderTopColor && before.borderTopColor !== "rgba(0, 0, 0, 0)"
       ? before.borderTopColor
       : computed.borderTopColor;
-  if (borderWidth !== "0px" && borderStyle !== "none") {
-    dest.style.borderWidth = borderWidth;
-    dest.style.borderStyle = borderStyle;
-    dest.style.borderColor = borderColor;
+  if (width === "0px" || style === "none") {
+    return null;
   }
-  // PF draws the border on ::before via this token. html2canvas still paints
-  // that pseudo even if a stylesheet sets content:none, so collapse it here.
-  dest.style.setProperty(CARD_BORDER_WIDTH_VAR, "0px");
+  return { width, style, color };
+}
+
+function applyCardChrome(source: HTMLElement, dest: HTMLElement): void {
+  const computed = window.getComputedStyle(source);
+  dest.style.borderRadius = computed.borderRadius;
+  dest.style.backgroundColor = resolvedFill(computed.backgroundColor);
+  dest.style.overflow = "hidden";
+  const border = readCardBorder(source);
+  if (border) {
+    dest.style.borderWidth = border.width;
+    dest.style.borderStyle = border.style;
+    dest.style.borderColor = border.color;
+  }
+}
+
+function hideCardBeforePseudo(): () => void {
+  const style = document.createElement("style");
+  style.setAttribute("data-chart-export-hide-before", "");
+  style.textContent = `
+[${CHART_EXPORT_CAPTURING_ATTR}] .pf-v6-c-card::before,
+[${CHART_EXPORT_CAPTURING_ATTR}].pf-v6-c-card::before {
+  border: none !important;
+  box-shadow: none !important;
+}
+`;
+  document.head.append(style);
+  return () => {
+    style.remove();
+  };
 }
 
 function copyComputedPadding(node: HTMLElement): {
@@ -175,8 +205,6 @@ function copyCardChrome(node: HTMLElement): {
   minHeight: string;
   height: string;
   maxHeight: string;
-  borderWidthVar: string;
-  borderWidthVarPriority: string;
 } {
   const previous = {
     borderRadius: node.style.borderRadius,
@@ -189,10 +217,6 @@ function copyCardChrome(node: HTMLElement): {
     minHeight: node.style.minHeight,
     height: node.style.height,
     maxHeight: node.style.maxHeight,
-    borderWidthVar: node.style.getPropertyValue(CARD_BORDER_WIDTH_VAR),
-    borderWidthVarPriority: node.style.getPropertyPriority(
-      CARD_BORDER_WIDTH_VAR,
-    ),
   };
   applyCardChrome(node, node);
   node.style.minHeight = "0px";
@@ -295,15 +319,6 @@ function prepareCaptureLayout(element: HTMLElement): () => void {
       entry.node.style.minHeight = entry.minHeight;
       entry.node.style.height = entry.height;
       entry.node.style.maxHeight = entry.maxHeight;
-      if (entry.borderWidthVar) {
-        entry.node.style.setProperty(
-          CARD_BORDER_WIDTH_VAR,
-          entry.borderWidthVar,
-          entry.borderWidthVarPriority,
-        );
-      } else {
-        entry.node.style.removeProperty(CARD_BORDER_WIDTH_VAR);
-      }
     }
     for (const entry of previousPadding) {
       entry.node.style.paddingTop = entry.paddingTop;
@@ -320,6 +335,7 @@ export async function captureChartElement(
   const restoreHidden = revealHiddenChartAncestors(element);
   const restoreLayout = prepareCaptureLayout(element);
   element.setAttribute(CHART_EXPORT_CAPTURING_ATTR, "");
+  const restoreCardBefore = hideCardBeforePseudo();
 
   try {
     await new Promise<void>((resolve) => {
@@ -344,6 +360,7 @@ export async function captureChartElement(
       },
     });
   } finally {
+    restoreCardBefore();
     element.removeAttribute(CHART_EXPORT_CAPTURING_ATTR);
     restoreLayout();
     restoreHidden();

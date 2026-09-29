@@ -12,7 +12,10 @@ export const chartExportScrollProps = {
   [CHART_EXPORT_SCROLL_ATTR]: "",
 } as const;
 
-export const chartExportRootStyle: CSSProperties = { height: "100%" };
+export const chartExportRootStyle: CSSProperties = {
+  width: "100%",
+  height: "100%",
+};
 
 export type ChartExportMeta = {
   id: string;

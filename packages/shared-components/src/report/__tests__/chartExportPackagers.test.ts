@@ -7,7 +7,11 @@ import {
 } from "../chartExport.js";
 import { getChartExportFilename } from "../chartExportFilenames.js";
 import { buildHtmlReport, escapeHtml } from "../htmlExport.js";
-import { splitSegmentForPageHeight } from "../pdfPage.js";
+import {
+  fitPdfImageSize,
+  placePdfBlock,
+  splitSegmentForPageHeight,
+} from "../pdfPage.js";
 
 describe("chart export filenames", () => {
   const date = new Date("2026-07-01T15:30:00");
@@ -161,6 +165,39 @@ describe("splitSegmentForPageHeight", () => {
   });
 });
 
+describe("fitPdfImageSize", () => {
+  it("keeps full content width when the chart fits the page", () => {
+    expect(fitPdfImageSize(800, 200, 190, 277)).toEqual({
+      widthMm: 190,
+      heightMm: 47.5,
+    });
+  });
+
+  it("scales down a chart taller than the page", () => {
+    expect(fitPdfImageSize(1000, 2000, 200, 100)).toEqual({
+      widthMm: 50,
+      heightMm: 100,
+    });
+  });
+});
+
+describe("placePdfBlock", () => {
+  it("stacks charts on the same page while they fit", () => {
+    expect(placePdfBlock(null, 50, 10, 287)).toEqual({
+      y: 10,
+      needsNewPage: true,
+    });
+    expect(placePdfBlock(68, 50, 10, 287)).toEqual({
+      y: 68,
+      needsNewPage: false,
+    });
+    expect(placePdfBlock(250, 50, 10, 287)).toEqual({
+      y: 10,
+      needsNewPage: true,
+    });
+  });
+});
+
 describe("buildHtmlReport", () => {
   it("embeds captured chart images and escapes the title", () => {
     const html = buildHtmlReport(
@@ -179,6 +216,8 @@ describe("buildHtmlReport", () => {
     );
     expect(html).toContain('src="data:image/png;base64,abc"');
     expect(html).toContain("Infrastructure summary");
+    expect(html).not.toContain("border:");
+    expect(html).toContain("width: 100%");
     expect(escapeHtml("<b>")).toBe("&lt;b&gt;");
     expect(escapeHtml("it's")).toBe("it&#39;s");
   });

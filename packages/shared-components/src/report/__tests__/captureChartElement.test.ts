@@ -60,7 +60,7 @@ describe("captureChartElement", () => {
     expect(panel.style.display).toBe("none");
   });
 
-  it("keeps the card radius and paints a real border for the snapshot", async () => {
+  it("paints a real card border and hides the PatternFly ::before during capture", async () => {
     const root = document.createElement("div");
     const card = document.createElement("div");
     card.className = "pf-v6-c-card";
@@ -71,23 +71,20 @@ describe("captureChartElement", () => {
     document.body.append(root);
 
     mockedHtml2Canvas.mockImplementation(async (_element, options) => {
-      expect(card.style.borderRadius).toBe("16px");
+      expect(card.style.borderWidth).toBe("1px");
       expect(card.style.overflow).toBe("hidden");
-      expect(card.style.backgroundColor).toBe("rgb(255, 255, 255)");
-      expect(card.style.getPropertyValue("--pf-v6-c-card--BorderWidth")).toBe(
-        "0px",
-      );
+      expect(
+        document.head.querySelector("[data-chart-export-hide-before]"),
+      ).not.toBeNull();
 
       const cloneRoot = document.createElement("div");
       const cloneCard = document.createElement("div");
       cloneCard.className = "pf-v6-c-card";
       cloneRoot.append(cloneCard);
       options?.onclone?.(document, cloneRoot);
-      expect(cloneCard.style.borderRadius).toBe("16px");
+      expect(cloneCard.style.borderWidth).toBe("1px");
+      expect(cloneCard.style.borderStyle).toBe("solid");
       expect(cloneCard.style.overflow).toBe("hidden");
-      expect(
-        cloneCard.style.getPropertyValue("--pf-v6-c-card--BorderWidth"),
-      ).toBe("0px");
 
       const canvas = document.createElement("canvas");
       canvas.width = 1;
@@ -97,8 +94,11 @@ describe("captureChartElement", () => {
 
     await captureChartElement(root);
 
-    expect(card.style.borderRadius).toBe("16px");
-    expect(card.style.getPropertyValue("--pf-v6-c-card--BorderWidth")).toBe("");
+    expect(card.style.borderWidth).toBe("1px");
+    expect(card.style.overflow).toBe("");
+    expect(
+      document.head.querySelector("[data-chart-export-hide-before]"),
+    ).toBeNull();
   });
 
   it("inlines computed card title padding so content stays inset", async () => {
