@@ -99,3 +99,18 @@ export const buildClusterViewModel = ({
     clusterFound: Boolean(clusterData),
   };
 };
+
+/** Header totals for the current cluster dropdown selection. */
+export function getClusterScopedHeaderCounts(clusterView: ClusterViewModel): {
+  totalVMs: number;
+  totalClusters: number;
+} {
+  return {
+    totalVMs: clusterView.viewVms?.total ?? 0,
+    totalClusters: clusterView.isAggregateView
+      ? Object.keys(clusterView.viewClusters ?? {}).length
+      : clusterView.clusterFound
+        ? 1
+        : 0,
+  };
+}
