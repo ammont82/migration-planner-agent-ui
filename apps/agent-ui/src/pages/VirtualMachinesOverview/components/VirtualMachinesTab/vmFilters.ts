@@ -1,3 +1,5 @@
+import { combineFilterExpressions } from "../../../Groups/utils/groupFilters";
+
 export interface VMFilters {
   hasIssues?: boolean;
   noIssues?: boolean;
@@ -264,6 +266,35 @@ export function filtersToByExpression(filters: VMFilters): string | undefined {
   }
 
   return conditions.join(" and ");
+}
+
+/**
+ * Cluster clause for the VM list.
+ * The value is the inventory cluster id from the report dropdown
+ * (`vcluster."Object ID"`), not the cluster name.
+ * "All vSphere clusters" does not add a clause.
+ */
+export function clusterSelectionExpression(
+  clusterId: string | undefined,
+): string | undefined {
+  if (!clusterId || clusterId === "all") {
+    return undefined;
+  }
+  return `cluster_id = '${escapeFilterValue(clusterId)}'`;
+}
+
+/**
+ * VM list expression for the assessment report: table filters, limited to the
+ * selected inventory cluster id when one cluster is selected.
+ */
+export function buildScopedVmByExpression(
+  filters: VMFilters,
+  clusterId: string | undefined,
+): string | undefined {
+  return combineFilterExpressions(
+    clusterSelectionExpression(clusterId),
+    filtersToByExpression(withDefaultReportInclusion(filters)),
+  );
 }
 
 /**

@@ -33,7 +33,11 @@ import {
   useGetVMsQuery,
 } from "../../store/api/vmsEndpoints";
 import { getSdkErrorMessage } from "../../store/baseQuery";
-import { buildClusterViewModel, type ClusterOption } from "./clusterView";
+import {
+  buildClusterViewModel,
+  type ClusterOption,
+  getClusterScopedHeaderCounts,
+} from "./clusterView";
 import { ApplicationsView } from "./components/ApplicationsTab/ApplicationsView";
 import { Dashboard } from "./components/Dashboard/Dashboard";
 import { ExportCsvModal } from "./components/Export/ExportCsvModal";
@@ -41,12 +45,12 @@ import { useExportInventory } from "./components/Export/useExportInventory";
 import { VirtualMachinesView } from "./components/VirtualMachinesTab/VirtualMachinesView";
 import { VMUtilizationMetrics } from "./components/VirtualMachinesTab/VMUtilizationMetrics";
 import {
-  filtersToByExpression,
+  buildScopedVmByExpression,
+  clusterSelectionExpression,
   filtersToSearchParams,
   hasActiveFilters,
   searchParamsToFilters,
   type VMFilters,
-  withDefaultReportInclusion,
 } from "./components/VirtualMachinesTab/vmFilters";
 import {
   vmsTabContentBodyStyle,
@@ -140,10 +144,34 @@ export const ReportContainer: React.FC = () => {
     error: inventoryError,
   } = useGetInventoryQuery();
 
-  const byExpression = useMemo(
-    () => filtersToByExpression(withDefaultReportInclusion(initialVMFilters)),
-    [initialVMFilters],
+  const clusterScopeId = useMemo(() => {
+    if (!inventory) {
+      return "all";
+    }
+    const aggregateView = getInventoryAggregateView(inventory);
+    return buildClusterViewModel({
+      infra: aggregateView.infra,
+      vms: aggregateView.vms,
+      clusters: aggregateView.clusters,
+      selectedClusterId,
+    }).selectionId;
+  }, [inventory, selectedClusterId]);
+
+  const { data: utilizationMetrics } = useGetClusterUtilizationQuery(
+    clusterScopeId,
+    { skip: clusterScopeId === "all" },
   );
+
+  const { data: filterOptionsData } = useGetVMFilterOptionsQuery(undefined, {
+    skip: activeTab !== REPORT_TAB.vms || !inventory,
+  });
+  const availableFilterOptions = filterOptionsData ?? EMPTY_FILTER_OPTIONS;
+
+  const byExpression = useMemo(
+    () => buildScopedVmByExpression(initialVMFilters, clusterScopeId),
+    [initialVMFilters, clusterScopeId],
+  );
+  const clusterScopeExpression = clusterSelectionExpression(clusterScopeId);
 
   const { data: vmsData, isFetching: vmsFetching } = useGetVMsQuery(
     {
@@ -160,11 +188,6 @@ export const ReportContainer: React.FC = () => {
   );
   const vmsTotalCount = vmsData?.total ?? 0;
 
-  const { data: filterOptionsData } = useGetVMFilterOptionsQuery(undefined, {
-    skip: activeTab !== REPORT_TAB.vms || !inventory,
-  });
-  const availableFilterOptions = filterOptionsData ?? EMPTY_FILTER_OPTIONS;
-
   const {
     data: applicationsData,
     isFetching: applicationsFetching,
@@ -176,14 +199,6 @@ export const ReportContainer: React.FC = () => {
   const applicationsError = applicationsQueryError
     ? getSdkErrorMessage(applicationsQueryError, "Failed to load applications.")
     : null;
-
-  // Cluster usage statistics — only fetched when a specific cluster is
-  // selected. The query keys on clusterId, so switching clusters refetches and
-  // switching back to "all" (skip) hides the metrics.
-  const { data: utilizationMetrics } = useGetClusterUtilizationQuery(
-    selectedClusterId,
-    { skip: selectedClusterId === "all" },
-  );
 
   // A completed report invalidates the inventory/VM caches through the
   // collection-completion listener (see
@@ -276,15 +291,13 @@ export const ReportContainer: React.FC = () => {
   }
 
   const aggregateView = getInventoryAggregateView(inventory);
-  const totalVMs = aggregateView.vms?.total ?? 0;
-  const totalClusters = Object.keys(aggregateView.clusters).length;
-
   const clusterView = buildClusterViewModel({
     infra: aggregateView.infra,
     vms: aggregateView.vms,
     clusters: aggregateView.clusters,
     selectedClusterId,
   });
+  const { totalVMs, totalClusters } = getClusterScopedHeaderCounts(clusterView);
 
   const clusterSelectDisabled = clusterView.clusterOptions.length <= 1;
 
@@ -294,6 +307,7 @@ export const ReportContainer: React.FC = () => {
   ): void => {
     if (typeof value === "string") {
       setSelectedClusterId(value);
+      setVmsPage(1);
       const newParams = new URLSearchParams(searchParams);
       newParams.set("tab", reportTabToParam(activeTab));
       newParams.delete("vmId");
@@ -503,6 +517,7 @@ export const ReportContainer: React.FC = () => {
                   sortFields={vmsSortFields}
                   availableFilterOptions={availableFilterOptions}
                   agentApi={agentApi}
+                  scopedFilterExpression={clusterScopeExpression}
                 />
               </TabContentBody>
             </TabContent>

@@ -49,17 +49,18 @@ import { getSdkErrorMessage } from "../../store/baseQuery";
 import {
   buildClusterViewModel,
   type ClusterOption,
+  getClusterScopedHeaderCounts,
 } from "../VirtualMachinesOverview/clusterView";
 import { ApplicationsView } from "../VirtualMachinesOverview/components/ApplicationsTab/ApplicationsView";
 import { Dashboard } from "../VirtualMachinesOverview/components/Dashboard/Dashboard";
 import { VirtualMachinesView } from "../VirtualMachinesOverview/components/VirtualMachinesTab/VirtualMachinesView";
 import {
-  filtersToByExpression,
+  buildScopedVmByExpression,
+  clusterSelectionExpression,
   filtersToSearchParams,
   hasActiveFilters,
   searchParamsToFilters,
   type VMFilters,
-  withDefaultReportInclusion,
 } from "../VirtualMachinesOverview/components/VirtualMachinesTab/vmFilters";
 import {
   vmsTabContentBodyStyle,
@@ -85,6 +86,7 @@ import {
 import { normalizeVirtualMachines } from "../VirtualMachinesOverview/virtualMachineParsing";
 import { DeleteGroupModal } from "./components/modals/DeleteGroupModal";
 import { EditGroupNameModal } from "./components/modals/EditGroupNameModal";
+import { combineFilterExpressions } from "./utils/groupFilters";
 
 const EMPTY_FILTER_OPTIONS: VMTableFilterOptions = {
   clusters: [],
@@ -158,10 +160,29 @@ export const GroupDetailPage: React.FC = () => {
   );
 
   // --- Group VMs (table source) --------------------------------------------
+  const clusterScopeId = useMemo(() => {
+    if (!inventory) {
+      return "all";
+    }
+    const aggregateView = getInventoryAggregateView(inventory);
+    return buildClusterViewModel({
+      infra: aggregateView.infra,
+      vms: aggregateView.vms,
+      clusters: aggregateView.clusters,
+      selectedClusterId,
+    }).selectionId;
+  }, [inventory, selectedClusterId]);
+
+  const { data: filterOptionsData } = useGetVMFilterOptionsQuery(undefined, {
+    skip: activeTab !== REPORT_TAB.vms,
+  });
+  const availableFilterOptions = filterOptionsData ?? EMPTY_FILTER_OPTIONS;
+
   const byExpression = useMemo(
-    () => filtersToByExpression(withDefaultReportInclusion(initialVMFilters)),
-    [initialVMFilters],
+    () => buildScopedVmByExpression(initialVMFilters, clusterScopeId),
+    [initialVMFilters, clusterScopeId],
   );
+  const clusterScopeExpression = clusterSelectionExpression(clusterScopeId);
 
   const { data: vmsData, isFetching: vmsLoading } = useGetGroupVMsQuery(
     {
@@ -172,7 +193,9 @@ export const GroupDetailPage: React.FC = () => {
       page: vmsPage,
       pageSize: vmsPageSize,
     },
-    { skip: activeTab !== REPORT_TAB.vms || !groupId || !groupFilter },
+    {
+      skip: activeTab !== REPORT_TAB.vms || !groupId || !groupFilter,
+    },
   );
 
   const vmsList = useMemo(
@@ -180,12 +203,6 @@ export const GroupDetailPage: React.FC = () => {
     [vmsData],
   );
   const vmsTotalCount = vmsData?.total ?? 0;
-
-  // Filter dropdowns are the global option set (shared with the overview page).
-  const { data: filterOptionsData } = useGetVMFilterOptionsQuery(undefined, {
-    skip: activeTab !== REPORT_TAB.vms,
-  });
-  const availableFilterOptions = filterOptionsData ?? EMPTY_FILTER_OPTIONS;
 
   // Applications detected on this group's VMs (GET /groups/:id/applications).
   const {
@@ -261,6 +278,7 @@ export const GroupDetailPage: React.FC = () => {
   ): void => {
     if (typeof value === "string") {
       setSelectedClusterId(value);
+      setVmsPage(1);
       const newParams = new URLSearchParams(searchParams);
       newParams.set("tab", reportTabToParam(activeTab));
       newParams.delete("vmId");
@@ -312,15 +330,17 @@ export const GroupDetailPage: React.FC = () => {
   }
 
   const aggregateView = getInventoryAggregateView(inventory);
-  const totalVMs = aggregateView.vms?.total ?? vmsTotalCount ?? 0;
-  const totalClusters = Object.keys(aggregateView.clusters).length;
-
   const clusterView = buildClusterViewModel({
     infra: aggregateView.infra,
     vms: aggregateView.vms,
     clusters: aggregateView.clusters,
     selectedClusterId,
   });
+  const headerCounts = getClusterScopedHeaderCounts(clusterView);
+  const totalVMs = clusterView.isAggregateView
+    ? (aggregateView.vms?.total ?? vmsTotalCount ?? 0)
+    : headerCounts.totalVMs;
+  const totalClusters = headerCounts.totalClusters;
 
   const clusterSelectDisabled = clusterView.clusterOptions.length <= 1;
   return (
@@ -513,7 +533,10 @@ export const GroupDetailPage: React.FC = () => {
                 availableFilterOptions={availableFilterOptions}
                 agentApi={agentApi}
                 groupContext={{ id: group.id, name: group.name }}
-                scopedFilterExpression={group.filter}
+                scopedFilterExpression={combineFilterExpressions(
+                  group.filter,
+                  clusterScopeExpression,
+                )}
                 sortFields={vmsSortFields}
               />
             </TabContentBody>

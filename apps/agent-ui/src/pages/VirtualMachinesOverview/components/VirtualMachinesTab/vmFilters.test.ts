@@ -1,5 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
+  buildScopedVmByExpression,
+  clusterSelectionExpression,
   filtersToByExpression,
   filtersToSearchParams,
   searchParamsToFilters,
@@ -178,6 +180,31 @@ describe("filtersToByExpression reportInclusion", () => {
         search: "web",
       }),
     ).toBe("name like 'web' and migration_excluded = false");
+  });
+});
+
+describe("cluster selection scope", () => {
+  it("does not add a cluster clause for all clusters", () => {
+    expect(clusterSelectionExpression("all")).toBeUndefined();
+    expect(clusterSelectionExpression(undefined)).toBeUndefined();
+    expect(buildScopedVmByExpression({ search: "web" }, "all")).toBe(
+      "name like 'web' and (migration_excluded = true or migration_excluded = false)",
+    );
+  });
+
+  it("limits the VM list to the selected inventory cluster id", () => {
+    expect(clusterSelectionExpression("cluster-fb55d09a08ee0c0f")).toBe(
+      "cluster_id = 'cluster-fb55d09a08ee0c0f'",
+    );
+    expect(buildScopedVmByExpression({}, "cluster-fb55d09a08ee0c0f")).toBe(
+      "(cluster_id = 'cluster-fb55d09a08ee0c0f') and ((migration_excluded = true or migration_excluded = false))",
+    );
+  });
+
+  it("keeps table filters and escapes the cluster id", () => {
+    expect(buildScopedVmByExpression({ search: "web" }, "it's")).toBe(
+      "(cluster_id = 'it\\'s') and (name like 'web' and (migration_excluded = true or migration_excluded = false))",
+    );
   });
 });
 
