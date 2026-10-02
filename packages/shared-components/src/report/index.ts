@@ -108,6 +108,14 @@ export {
   visibleNetworks,
   vsanStatus,
 } from "./infrastructureSummaryModel.js";
+export {
+  type NetworkInfraLike,
+  type NetworkLike,
+  NetworkOverview,
+  type NetworkOverviewProps,
+  type NicCountHistogram,
+  type NicCountSummary,
+} from "./NetworkOverview.js";
 export { OSBarChart, OSDistribution } from "./OSDistribution.js";
 export { OsSupportTiersHelpPopover } from "./OsSupportTiersHelpPopover.js";
 export { OsUpgradeNotice } from "./OsUpgradeNotice.js";

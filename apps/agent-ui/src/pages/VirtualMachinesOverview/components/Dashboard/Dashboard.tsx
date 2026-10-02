@@ -10,6 +10,7 @@ import {
   buildInfrastructureSummary,
   HostPowerStates,
   InfrastructureSummary,
+  NetworkOverview,
   OSDistribution,
   type OSDistributionEntry,
   VCenterClusterDetails,
@@ -25,7 +26,6 @@ import { ClustersOverview } from "./ClustersOverview";
 import { CpuAndMemoryOverview } from "./CpuAndMemoryOverview";
 import { ErrorTable } from "./ErrorTable";
 import { HostsOverview } from "./HostsOverview";
-import { NetworkOverview } from "./NetworkOverview";
 import { StorageOverview } from "./StorageOverview";
 import { VMMigrationStatus } from "./VMMigrationStatus";
 import { WarningsTable } from "./WarningsTable";
