@@ -66,6 +66,11 @@ export {
   type EmptySearchResultsProps,
 } from "./EmptySearchResults.js";
 export {
+  ErrorTable,
+  type ErrorTableProps,
+  type MigrationIssueLike,
+} from "./ErrorTable.js";
+export {
   FeatureStatusBadge,
   type FeatureStatusBadgeProps,
 } from "./FeatureStatusBadge.js";
@@ -167,6 +172,7 @@ export {
   ReportExportMenu,
   type ReportExportMenuProps,
 } from "./ReportExportMenu.js";
+export { ReportTable, type ReportTableProps } from "./ReportTable.js";
 export {
   type ReportExportOption,
   type StandardReportExportHandlers,
