@@ -1,27 +1,58 @@
 import {
+  REPORT_EXPORT_SECTION,
   type ReportExportOption,
   type StandardReportExportHandlers,
   standardReportExportOptions,
 } from "@openshift-migration-advisor/shared-components";
 
-export type OverviewExportHandlers = StandardReportExportHandlers & {
-  onExportInventory?: () => void;
+export type InventoryExportHandlers = {
+  onExportCsv?: () => void;
+  onExportXlsx?: () => void;
+  onExportJsonZip?: () => void;
 };
 
+export type OverviewExportHandlers = StandardReportExportHandlers &
+  InventoryExportHandlers & {
+    enableInventoryExports?: boolean;
+  };
+
 export function buildOverviewExportOptions({
-  onExportInventory,
+  enableInventoryExports = true,
+  onExportCsv,
+  onExportXlsx,
+  onExportJsonZip,
   ...handlers
 }: OverviewExportHandlers): ReportExportOption[] {
-  const options = standardReportExportOptions(handlers);
+  const inventoryOptions: ReportExportOption[] = [];
 
-  if (onExportInventory) {
-    options.push({
-      key: "inventory",
-      label: "Spreadsheet",
-      description: "Download inventory as XLSX or ZIP",
-      onSelect: onExportInventory,
-    });
+  if (enableInventoryExports) {
+    if (onExportCsv) {
+      inventoryOptions.push({
+        key: "inventory-csv",
+        label: "CSV",
+        onSelect: onExportCsv,
+        section: REPORT_EXPORT_SECTION.inventory,
+      });
+    }
+    if (onExportXlsx) {
+      inventoryOptions.push({
+        key: "inventory-xlsx",
+        label: "XLSX",
+        onSelect: onExportXlsx,
+        section: REPORT_EXPORT_SECTION.inventory,
+      });
+    }
+    if (onExportJsonZip) {
+      inventoryOptions.push({
+        key: "inventory-json-zip",
+        label: "JSON (ZIP)",
+        description:
+          "Main inventory and group inventories for upload to the Migration Advisor console",
+        onSelect: onExportJsonZip,
+        section: REPORT_EXPORT_SECTION.inventory,
+      });
+    }
   }
 
-  return options;
+  return [...inventoryOptions, ...standardReportExportOptions(handlers)];
 }

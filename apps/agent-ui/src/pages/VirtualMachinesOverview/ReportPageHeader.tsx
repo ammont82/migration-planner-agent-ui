@@ -14,6 +14,7 @@ import {
   InputGroupItem,
 } from "@patternfly/react-core";
 import type React from "react";
+import { isApplianceUi } from "../../common/isApplianceUi";
 import { DeleteCollectedDataButton } from "../../common/report/DeleteCollectedDataButton";
 import { ExportButton } from "../../common/report/ExportButton";
 import { RunNewReportButton } from "../../common/report/RunNewReportButton";
@@ -75,14 +76,26 @@ ReportPageHeader.displayName = "ReportPageHeader";
 
 interface OverviewReportHeaderProps {
   showExport?: boolean;
-  onExportInventory?: () => void;
+  enableInventoryExports?: boolean;
+  onExportCsv?: () => void;
+  onExportXlsx?: () => void;
+  onExportJsonZip?: () => void;
+  isInventoryExporting?: boolean;
+  inventoryExportError?: string | null;
+  onClearInventoryExportError?: () => void;
   documentTitle: string;
   enableHtml?: boolean;
 }
 
 export const OverviewReportHeader: React.FC<OverviewReportHeaderProps> = ({
   showExport = false,
-  onExportInventory,
+  enableInventoryExports = isApplianceUi(),
+  onExportCsv,
+  onExportXlsx,
+  onExportJsonZip,
+  isInventoryExporting = false,
+  inventoryExportError = null,
+  onClearInventoryExportError,
   documentTitle,
   enableHtml = true,
 }) => {
@@ -104,17 +117,39 @@ export const OverviewReportHeader: React.FC<OverviewReportHeaderProps> = ({
             void charts.downloadHtml(documentTitle);
           }
         : undefined,
-    onExportInventory: showExport ? onExportInventory : undefined,
+    enableInventoryExports,
+    onExportCsv: showExport ? onExportCsv : undefined,
+    onExportXlsx: showExport ? onExportXlsx : undefined,
+    onExportJsonZip: showExport ? onExportJsonZip : undefined,
   });
+
+  const isExporting = Boolean(charts?.isBusy) || isInventoryExporting;
+  const exportLoadingLabel = isInventoryExporting
+    ? "Exporting inventory..."
+    : charts?.exportLoadingLabel;
 
   return (
     <>
       <ReportPageHeader
         showExport={showExport || exportOptions.length > 0}
         exportOptions={exportOptions}
-        isExporting={Boolean(charts?.isBusy)}
-        exportLoadingLabel={charts?.exportLoadingLabel}
+        isExporting={isExporting}
+        exportLoadingLabel={exportLoadingLabel}
       />
+      {inventoryExportError ? (
+        <Alert
+          variant="danger"
+          title="Export failed"
+          isInline
+          actionClose={
+            onClearInventoryExportError ? (
+              <AlertActionCloseButton onClose={onClearInventoryExportError} />
+            ) : undefined
+          }
+        >
+          {inventoryExportError}
+        </Alert>
+      ) : null}
       {charts?.exportError ? (
         <Alert
           variant="danger"

@@ -220,12 +220,15 @@ export const ReportContainer: React.FC = () => {
 
   const {
     isExportModalOpen,
+    modalInitialFormat,
     showExport,
     exportError,
     isExporting,
     openExportModal,
     closeExportModal,
+    clearExportError,
     confirmExport,
+    exportJsonZip,
   } = useExportInventory(agentApi, {
     hasCollectionData,
     hasInventory: Boolean(inventory),
@@ -372,7 +375,14 @@ export const ReportContainer: React.FC = () => {
           <StackItem>
             <OverviewReportHeader
               showExport={showExport}
-              onExportInventory={openExportModal}
+              onExportCsv={() => openExportModal("zip")}
+              onExportXlsx={() => openExportModal("xlsx")}
+              onExportJsonZip={() => {
+                void exportJsonZip();
+              }}
+              isInventoryExporting={isExporting && !isExportModalOpen}
+              inventoryExportError={!isExportModalOpen ? exportError : null}
+              onClearInventoryExportError={clearExportError}
               documentTitle={`Virtual machines overview - ${clusterView.selectionLabel}`}
               enableHtml={clusterView.isAggregateView}
             />
@@ -551,6 +561,7 @@ export const ReportContainer: React.FC = () => {
 
         <ExportCsvModal
           isOpen={isExportModalOpen}
+          initialFormat={modalInitialFormat}
           error={exportError}
           isExporting={isExporting}
           onClose={closeExportModal}

@@ -44,6 +44,7 @@ const scopeListStyle = css`
 
 interface ExportCsvModalProps {
   isOpen: boolean;
+  initialFormat?: ExportFormat;
   error?: string | null;
   isExporting?: boolean;
   onClose: () => void;
@@ -55,6 +56,7 @@ interface ExportCsvModalProps {
 
 export const ExportCsvModal: React.FC<ExportCsvModalProps> = ({
   isOpen,
+  initialFormat = DEFAULT_EXPORT_FORMAT,
   error = null,
   isExporting = false,
   onClose,
@@ -75,9 +77,9 @@ export const ExportCsvModal: React.FC<ExportCsvModalProps> = ({
   useEffect(() => {
     if (isOpen) {
       setSelectedScopes(DEFAULT_EXPORT_SCOPES);
-      setSelectedFormat(DEFAULT_EXPORT_FORMAT);
+      setSelectedFormat(initialFormat);
     }
-  }, [isOpen]);
+  }, [initialFormat, isOpen]);
 
   const selectedCount = selectedScopes.length;
   const allSelected = selectedCount === allScopeIds.length;

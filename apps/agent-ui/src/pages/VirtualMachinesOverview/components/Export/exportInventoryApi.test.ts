@@ -3,6 +3,8 @@ import { describe, expect, it, vi } from "vitest";
 import {
   detectExportFormatFromContentType,
   fetchExportInventory,
+  fetchInventoryJsonZip,
+  getInventoryJsonZipFilename,
 } from "./exportInventoryApi";
 
 function mockExportRawResponse({
@@ -157,5 +159,37 @@ describe("fetchExportInventory", () => {
     await expect(
       fetchExportInventory(agentApi, ["overview"], "zip"),
     ).rejects.toThrow("invalid scope");
+  });
+});
+
+describe("fetchInventoryJsonZip", () => {
+  it("names JSON ZIP downloads with the export date", () => {
+    const date = new Date("2026-07-01T12:00:00Z");
+    expect(getInventoryJsonZipFilename(date)).toBe(
+      "migration-export-2026-07-01-inventory.zip",
+    );
+  });
+
+  it("requests scope=all and returns the ZIP blob", async () => {
+    const fetchMock = vi.fn().mockResolvedValue(
+      new Response(new Blob(["zip"]), {
+        status: 200,
+        headers: { "content-type": "application/zip" },
+      }),
+    );
+    vi.stubGlobal("fetch", fetchMock);
+
+    const agentApi = {
+      configuration: { basePath: "http://localhost/agent/api/v2" },
+    } as never;
+
+    const blob = await fetchInventoryJsonZip(agentApi);
+    expect(blob).toBeInstanceOf(Blob);
+    expect(fetchMock).toHaveBeenCalledWith(
+      "http://localhost/agent/api/v2/inventory?scope=all",
+      { cache: "no-store" },
+    );
+
+    vi.unstubAllGlobals();
   });
 });

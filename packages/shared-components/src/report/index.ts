@@ -191,7 +191,10 @@ export {
 } from "./ReportExportMenu.js";
 export { ReportTable, type ReportTableProps } from "./ReportTable.js";
 export {
+  REPORT_EXPORT_SECTION,
+  REPORT_EXPORT_SECTION_LABELS,
   type ReportExportOption,
+  type ReportExportSectionId,
   type StandardReportExportHandlers,
   standardReportExportOptions,
 } from "./reportExportOptions.js";

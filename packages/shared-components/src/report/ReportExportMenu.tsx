@@ -1,5 +1,7 @@
 import {
+  Divider,
   Dropdown,
+  DropdownGroup,
   DropdownItem,
   DropdownList,
   MenuToggle,
@@ -7,12 +9,35 @@ import {
   Spinner,
 } from "@patternfly/react-core";
 import { DownloadIcon } from "@patternfly/react-icons";
-import { type FC, type Ref, useState } from "react";
+import { type FC, type ReactNode, type Ref, useMemo, useState } from "react";
 import {
+  REPORT_EXPORT_SECTION_LABELS,
   type ReportExportOption,
+  type ReportExportSectionId,
   type StandardReportExportHandlers,
   standardReportExportOptions,
 } from "./reportExportOptions.js";
+
+function groupExportOptions(
+  options: ReportExportOption[],
+): { sectionId?: ReportExportSectionId; options: ReportExportOption[] }[] {
+  const groups: {
+    sectionId?: ReportExportSectionId;
+    options: ReportExportOption[];
+  }[] = [];
+
+  for (const option of options) {
+    const sectionId = option.section;
+    const last = groups.length > 0 ? groups[groups.length - 1] : undefined;
+    if (last && last.sectionId === sectionId) {
+      last.options.push(option);
+    } else {
+      groups.push({ sectionId, options: [option] });
+    }
+  }
+
+  return groups;
+}
 
 export interface ReportExportMenuProps {
   options: ReportExportOption[];
@@ -31,9 +56,45 @@ export const ReportExportMenu: FC<ReportExportMenuProps> = ({
 }) => {
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
 
+  const optionGroups = useMemo(() => groupExportOptions(options), [options]);
+
   if (options.length === 0) {
     return null;
   }
+
+  const menuItems: ReactNode[] = [];
+  optionGroups.forEach((group, index) => {
+    if (index > 0) {
+      const dividerKey = group.sectionId ?? group.options[0]?.key ?? "flat";
+      menuItems.push(
+        <Divider key={`divider-before-${dividerKey}`} component="li" />,
+      );
+    }
+
+    const items = group.options.map((option) => (
+      <DropdownItem
+        key={option.key}
+        isDisabled={option.isDisabled}
+        description={option.description}
+        onClick={option.onSelect}
+      >
+        {option.label}
+      </DropdownItem>
+    ));
+
+    if (group.sectionId) {
+      menuItems.push(
+        <DropdownGroup
+          key={group.sectionId}
+          label={REPORT_EXPORT_SECTION_LABELS[group.sectionId]}
+        >
+          {items}
+        </DropdownGroup>,
+      );
+    } else {
+      menuItems.push(...items);
+    }
+  });
 
   return (
     <Dropdown
@@ -70,18 +131,7 @@ export const ReportExportMenu: FC<ReportExportMenuProps> = ({
         </MenuToggle>
       )}
     >
-      <DropdownList>
-        {options.map((option) => (
-          <DropdownItem
-            key={option.key}
-            isDisabled={option.isDisabled}
-            description={option.description}
-            onClick={option.onSelect}
-          >
-            {option.label}
-          </DropdownItem>
-        ))}
-      </DropdownList>
+      <DropdownList>{menuItems}</DropdownList>
     </Dropdown>
   );
 };

@@ -1,6 +1,11 @@
 import { ResponseError } from "@openshift-migration-advisor/agent-sdk";
 import type { DefaultApiInterface } from "../../../../api/agentApi";
+import { getAgentApiBasePath } from "../../../../api/agentApiConfig";
 import { getLatestCollectionId } from "../../../../api/collectionApi";
+import {
+  downloadExportBlob,
+  getDatedExportBasename,
+} from "./downloadExportBlob";
 import {
   DEFAULT_EXPORT_FORMAT,
   type ExportFormat,
@@ -88,6 +93,54 @@ async function getExportErrorMessage(error: unknown): Promise<string> {
     // Response body is not JSON.
   }
   return message;
+}
+
+export function getInventoryJsonZipFilename(date = new Date()): string {
+  return `${getDatedExportBasename(date)}-inventory.zip`;
+}
+
+/** GET /inventory?scope=all — ZIP of main + group subset inventories. */
+export async function fetchInventoryJsonZip(
+  agentApi: DefaultApiInterface,
+): Promise<Blob> {
+  const basePath = getAgentApiBasePath(agentApi);
+  const url = new URL(`${basePath}/inventory`);
+  url.searchParams.set("scope", "all");
+
+  const response = await fetch(url.toString(), { cache: "no-store" });
+  if (!response.ok) {
+    let message = `Export failed (${response.status})`;
+    try {
+      const body: unknown = await response.json();
+      if (
+        body &&
+        typeof body === "object" &&
+        "error" in body &&
+        typeof body.error === "string"
+      ) {
+        message = body.error;
+      }
+    } catch {
+      // Response body is not JSON.
+    }
+    throw new Error(message);
+  }
+
+  const contentType = response.headers.get("content-type");
+  if (contentType?.toLowerCase().includes("json")) {
+    throw new Error(
+      "The agent returned JSON instead of a ZIP archive. Please try again.",
+    );
+  }
+
+  return response.blob();
+}
+
+export async function downloadInventoryJsonZip(
+  agentApi: DefaultApiInterface,
+): Promise<void> {
+  const blob = await fetchInventoryJsonZip(agentApi);
+  downloadExportBlob(blob, getInventoryJsonZipFilename());
 }
 
 export async function fetchExportInventory(

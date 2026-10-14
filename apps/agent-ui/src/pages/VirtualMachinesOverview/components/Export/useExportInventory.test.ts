@@ -9,6 +9,7 @@ const getExportFilename = vi.fn((format: "zip" | "xlsx") =>
     : "migration-export-2026-07-01.zip",
 );
 const fetchExportInventory = vi.fn();
+const downloadInventoryJsonZip = vi.fn();
 
 vi.mock("./downloadExportBlob", () => ({
   downloadExportBlob: (...args: unknown[]) => downloadExportBlob(...args),
@@ -18,12 +19,15 @@ vi.mock("./downloadExportBlob", () => ({
 
 vi.mock("./exportInventoryApi", () => ({
   fetchExportInventory: (...args: unknown[]) => fetchExportInventory(...args),
+  downloadInventoryJsonZip: (...args: unknown[]) =>
+    downloadInventoryJsonZip(...args),
 }));
 
 describe("useExportInventory", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     fetchExportInventory.mockResolvedValue(new Blob(["export"]));
+    downloadInventoryJsonZip.mockResolvedValue(undefined);
   });
 
   it("downloads an Excel file when format is xlsx", async () => {
@@ -75,6 +79,40 @@ describe("useExportInventory", () => {
       expect.any(Blob),
       "migration-export-2026-07-01.zip",
     );
+  });
+
+  it("downloads the inventory JSON ZIP bundle", async () => {
+    const agentApi = {} as never;
+    const { result } = renderHook(() =>
+      useExportInventory(agentApi, {
+        hasCollectionData: true,
+        hasInventory: true,
+      }),
+    );
+
+    await act(async () => {
+      await result.current.exportJsonZip();
+    });
+
+    expect(downloadInventoryJsonZip).toHaveBeenCalledWith(agentApi);
+    expect(result.current.exportError).toBeNull();
+  });
+
+  it("opens the modal with the requested spreadsheet format", () => {
+    const agentApi = {} as never;
+    const { result } = renderHook(() =>
+      useExportInventory(agentApi, {
+        hasCollectionData: true,
+        hasInventory: true,
+      }),
+    );
+
+    act(() => {
+      result.current.openExportModal("zip");
+    });
+
+    expect(result.current.isExportModalOpen).toBe(true);
+    expect(result.current.modalInitialFormat).toBe("zip");
   });
 
   it("keeps the modal open and surfaces errors when export fails", async () => {

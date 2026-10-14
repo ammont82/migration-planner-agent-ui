@@ -1,9 +1,26 @@
+export const REPORT_EXPORT_SECTION = {
+  inventory: "inventory",
+  assessmentReport: "assessment-report",
+} as const;
+
+export type ReportExportSectionId =
+  (typeof REPORT_EXPORT_SECTION)[keyof typeof REPORT_EXPORT_SECTION];
+
+export const REPORT_EXPORT_SECTION_LABELS: Record<
+  ReportExportSectionId,
+  string
+> = {
+  [REPORT_EXPORT_SECTION.inventory]: "Inventory",
+  [REPORT_EXPORT_SECTION.assessmentReport]: "Assessment report",
+};
+
 export interface ReportExportOption {
   key: string;
   label: string;
   description?: string;
   onSelect: () => void;
   isDisabled?: boolean;
+  section?: ReportExportSectionId;
 }
 
 export interface StandardReportExportHandlers {
@@ -26,8 +43,8 @@ export const standardReportExportOptions = ({
     options.push({
       key: "pdf",
       label: "PDF",
-      description: "Export the report as a PDF",
       onSelect: onExportPdf,
+      section: REPORT_EXPORT_SECTION.assessmentReport,
     });
   }
 
@@ -35,8 +52,8 @@ export const standardReportExportOptions = ({
     options.push({
       key: "html",
       label: "HTML",
-      description: "Export the report as HTML",
       onSelect: onExportHtml,
+      section: REPORT_EXPORT_SECTION.assessmentReport,
     });
   }
 
@@ -44,8 +61,8 @@ export const standardReportExportOptions = ({
     options.push({
       key: "png",
       label: "PNG",
-      description: "Download all charts as PNG files",
       onSelect: onExportPng,
+      section: REPORT_EXPORT_SECTION.assessmentReport,
     });
   }
 

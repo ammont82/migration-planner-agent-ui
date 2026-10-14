@@ -1,8 +1,15 @@
 import { useCallback, useRef, useState } from "react";
 import type { DefaultApiInterface } from "../../../../api/agentApi";
 import { downloadExportBlob, getExportFilename } from "./downloadExportBlob";
-import { fetchExportInventory } from "./exportInventoryApi";
-import type { ExportFormat, ExportScopeId } from "./exportScopes";
+import {
+  downloadInventoryJsonZip,
+  fetchExportInventory,
+} from "./exportInventoryApi";
+import {
+  DEFAULT_EXPORT_FORMAT,
+  type ExportFormat,
+  type ExportScopeId,
+} from "./exportScopes";
 
 type UseExportInventoryOptions = {
   hasCollectionData: boolean;
@@ -14,16 +21,20 @@ export function useExportInventory(
   { hasCollectionData, hasInventory }: UseExportInventoryOptions,
 ) {
   const [isExportModalOpen, setIsExportModalOpen] = useState(false);
+  const [modalInitialFormat, setModalInitialFormat] = useState<ExportFormat>(
+    DEFAULT_EXPORT_FORMAT,
+  );
   const [exportError, setExportError] = useState<string | null>(null);
   const [isExporting, setIsExporting] = useState(false);
   const isExportingRef = useRef(false);
 
   const showExport = hasCollectionData && hasInventory;
 
-  const openExportModal = useCallback(() => {
+  const openExportModal = useCallback((format: ExportFormat = "xlsx") => {
     setExportError(null);
     setIsExporting(false);
     isExportingRef.current = false;
+    setModalInitialFormat(format);
     setIsExportModalOpen(true);
   }, []);
 
@@ -32,6 +43,10 @@ export function useExportInventory(
     setIsExporting(false);
     isExportingRef.current = false;
     setIsExportModalOpen(false);
+  }, []);
+
+  const clearExportError = useCallback(() => {
+    setExportError(null);
   }, []);
 
   const confirmExport = useCallback(
@@ -64,13 +79,41 @@ export function useExportInventory(
     [agentApi],
   );
 
+  const exportJsonZip = useCallback(async () => {
+    if (isExportingRef.current) {
+      return;
+    }
+
+    isExportingRef.current = true;
+    setIsExporting(true);
+    setExportError(null);
+
+    try {
+      await downloadInventoryJsonZip(agentApi);
+      setExportError(null);
+    } catch (err) {
+      console.error("Error exporting inventory JSON ZIP:", err);
+      const errorMessage =
+        err instanceof Error
+          ? err.message
+          : "Failed to export inventory. Please try again.";
+      setExportError(errorMessage);
+    } finally {
+      isExportingRef.current = false;
+      setIsExporting(false);
+    }
+  }, [agentApi]);
+
   return {
     isExportModalOpen,
+    modalInitialFormat,
     showExport,
     exportError,
     isExporting,
     openExportModal,
     closeExportModal,
+    clearExportError,
     confirmExport,
+    exportJsonZip,
   };
 }
