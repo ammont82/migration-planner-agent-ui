@@ -36,7 +36,7 @@ import { getSdkErrorMessage } from "../../store/baseQuery";
 import {
   buildClusterViewModel,
   type ClusterOption,
-  getClusterScopedHeaderCounts,
+  getFleetHeaderCounts,
 } from "./clusterView";
 import { ApplicationsView } from "./components/ApplicationsTab/ApplicationsView";
 import { Dashboard } from "./components/Dashboard/Dashboard";
@@ -300,7 +300,7 @@ export const ReportContainer: React.FC = () => {
     clusters: aggregateView.clusters,
     selectedClusterId,
   });
-  const { totalVMs, totalClusters } = getClusterScopedHeaderCounts(clusterView);
+  const { totalVMs, totalClusters } = getFleetHeaderCounts(aggregateView);
 
   const clusterSelectDisabled = clusterView.clusterOptions.length <= 1;
 
@@ -379,6 +379,10 @@ export const ReportContainer: React.FC = () => {
             <DiscoveryStatus />
           </StackItem>
 
+          <StackItem>
+            <Header totalVMs={totalVMs} totalClusters={totalClusters} />
+          </StackItem>
+
           {/* Cluster Selector */}
           <StackItem>
             <Select
@@ -413,10 +417,6 @@ export const ReportContainer: React.FC = () => {
                 ))}
               </SelectList>
             </Select>
-          </StackItem>
-
-          <StackItem>
-            <Header totalVMs={totalVMs} totalClusters={totalClusters} />
           </StackItem>
 
           {utilizationMetrics && (

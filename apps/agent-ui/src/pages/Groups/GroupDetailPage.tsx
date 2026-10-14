@@ -49,7 +49,7 @@ import { getSdkErrorMessage } from "../../store/baseQuery";
 import {
   buildClusterViewModel,
   type ClusterOption,
-  getClusterScopedHeaderCounts,
+  getFleetHeaderCounts,
 } from "../VirtualMachinesOverview/clusterView";
 import { ApplicationsView } from "../VirtualMachinesOverview/components/ApplicationsTab/ApplicationsView";
 import { Dashboard } from "../VirtualMachinesOverview/components/Dashboard/Dashboard";
@@ -336,11 +336,7 @@ export const GroupDetailPage: React.FC = () => {
     clusters: aggregateView.clusters,
     selectedClusterId,
   });
-  const headerCounts = getClusterScopedHeaderCounts(clusterView);
-  const totalVMs = clusterView.isAggregateView
-    ? (aggregateView.vms?.total ?? vmsTotalCount ?? 0)
-    : headerCounts.totalVMs;
-  const totalClusters = headerCounts.totalClusters;
+  const { totalVMs, totalClusters } = getFleetHeaderCounts(aggregateView);
 
   const clusterSelectDisabled = clusterView.clusterOptions.length <= 1;
   return (
@@ -406,6 +402,10 @@ export const GroupDetailPage: React.FC = () => {
         </StackItem>
 
         <StackItem>
+          <Header totalVMs={totalVMs} totalClusters={totalClusters} />
+        </StackItem>
+
+        <StackItem>
           <Select
             isScrollable
             isOpen={isClusterSelectOpen}
@@ -438,10 +438,6 @@ export const GroupDetailPage: React.FC = () => {
               ))}
             </SelectList>
           </Select>
-        </StackItem>
-
-        <StackItem>
-          <Header totalVMs={totalVMs} totalClusters={totalClusters} />
         </StackItem>
 
         <StackItem isFilled className={vmsTabsStackItemStyle}>

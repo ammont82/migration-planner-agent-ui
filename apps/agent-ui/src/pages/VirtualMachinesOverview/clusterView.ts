@@ -100,17 +100,19 @@ export const buildClusterViewModel = ({
   };
 };
 
-/** Header totals for the current cluster dropdown selection. */
-export function getClusterScopedHeaderCounts(clusterView: ClusterViewModel): {
+/** Fleet-wide header totals (unchanged by cluster dropdown selection). */
+export function getFleetHeaderCounts({
+  vms,
+  clusters,
+}: {
+  vms?: VMs;
+  clusters?: { [key: string]: InventoryData };
+}): {
   totalVMs: number;
   totalClusters: number;
 } {
   return {
-    totalVMs: clusterView.viewVms?.total ?? 0,
-    totalClusters: clusterView.isAggregateView
-      ? Object.keys(clusterView.viewClusters ?? {}).length
-      : clusterView.clusterFound
-        ? 1
-        : 0,
+    totalVMs: vms?.total ?? 0,
+    totalClusters: Object.keys(clusters ?? {}).length,
   };
 }

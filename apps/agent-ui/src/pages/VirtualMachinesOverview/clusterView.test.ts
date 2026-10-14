@@ -1,9 +1,6 @@
 import type { Infra, VMs } from "@openshift-migration-advisor/agent-sdk";
 import { describe, expect, it } from "vitest";
-import {
-  buildClusterViewModel,
-  getClusterScopedHeaderCounts,
-} from "./clusterView";
+import { buildClusterViewModel, getFleetHeaderCounts } from "./clusterView";
 
 const emptyResourceBreakdown = {
   total: 0,
@@ -36,48 +33,54 @@ const clusters = {
   dev: { infra, vms: vms(2) },
 };
 
-describe("getClusterScopedHeaderCounts", () => {
-  it("uses the aggregate inventory when all clusters are selected", () => {
-    const clusterView = buildClusterViewModel({
-      infra,
-      vms: vms(7),
-      clusters,
-      selectedClusterId: "all",
-    });
+const aggregateVms = vms(7);
 
-    expect(getClusterScopedHeaderCounts(clusterView)).toEqual({
+describe("getFleetHeaderCounts", () => {
+  it("uses aggregate inventory totals", () => {
+    expect(getFleetHeaderCounts({ vms: aggregateVms, clusters })).toEqual({
       totalVMs: 7,
       totalClusters: 2,
     });
   });
 
-  it("uses only the selected cluster", () => {
+  it("is unchanged when a single cluster is selected in the view model", () => {
+    buildClusterViewModel({
+      infra,
+      vms: aggregateVms,
+      clusters,
+      selectedClusterId: "prod",
+    });
+
+    expect(getFleetHeaderCounts({ vms: aggregateVms, clusters })).toEqual({
+      totalVMs: 7,
+      totalClusters: 2,
+    });
+  });
+});
+
+describe("buildClusterViewModel", () => {
+  it("scopes view data to the selected cluster", () => {
     const clusterView = buildClusterViewModel({
       infra,
-      vms: vms(7),
+      vms: aggregateVms,
       clusters,
       selectedClusterId: "prod",
     });
 
     expect(clusterView.viewVms?.total).toBe(4);
-    expect(getClusterScopedHeaderCounts(clusterView)).toEqual({
-      totalVMs: 4,
-      totalClusters: 1,
-    });
+    expect(clusterView.isAggregateView).toBe(false);
   });
 
   it("falls back to the aggregate when the selected cluster is gone", () => {
     const clusterView = buildClusterViewModel({
       infra,
-      vms: vms(7),
+      vms: aggregateVms,
       clusters,
       selectedClusterId: "missing",
     });
 
     expect(clusterView.selectionId).toBe("all");
-    expect(getClusterScopedHeaderCounts(clusterView)).toEqual({
-      totalVMs: 7,
-      totalClusters: 2,
-    });
+    expect(clusterView.viewVms?.total).toBe(7);
+    expect(clusterView.isAggregateView).toBe(true);
   });
 });
