@@ -108,6 +108,10 @@ const themedChartTooltipFlyoutPadding = {
   right: 10,
 } as const;
 
+/** Victory SVG text defaults to a serif face; match PatternFly / html2canvas export. */
+const chartTextFontFamily =
+  "RedHatText, Overpass, Helvetica, Arial, sans-serif";
+
 const styles = {
   legendIcon: css`
     margin-right: 4px;
@@ -136,6 +140,7 @@ const styles = {
     background: none;
     padding: var(--pf-t--global--spacer--xs) var(--pf-t--global--spacer--ml);
     margin: 0;
+    font-family: ${chartTextFontFamily};
     transition: opacity var(--pf-t--global--motion--duration--short);
     white-space: nowrap;
 
@@ -146,6 +151,7 @@ const styles = {
   legendLabel: css`
     gap: var(--pf-t--global--spacer--lg);
     padding: var(--pf-t--global--spacer--xs) var(--pf-t--global--spacer--ml);
+    font-family: ${chartTextFontFamily};
     white-space: nowrap;
   `,
   legendInner: css`
@@ -422,6 +428,7 @@ export const MigrationDonutChart: FC<MigrationDonutChartProps> = ({
               labels: {
                 fontSize: labelFontSize,
                 fill: "var(--pf-t--global--text--color--regular)",
+                fontFamily: chartTextFontFamily,
               },
             }}
           />
@@ -474,6 +481,7 @@ export const MigrationDonutChart: FC<MigrationDonutChartProps> = ({
                     fill: titleColor,
                     fontSize: titleFontSize,
                     fontWeight: "bold",
+                    fontFamily: chartTextFontFamily,
                   },
                 ]}
               />
@@ -487,6 +495,7 @@ export const MigrationDonutChart: FC<MigrationDonutChartProps> = ({
                   {
                     fill: subTitleColor,
                     fontSize: subTitleFontSize,
+                    fontFamily: chartTextFontFamily,
                   },
                 ]}
               />

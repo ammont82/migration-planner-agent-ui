@@ -11,8 +11,15 @@ import {
   shouldIgnoreChartExportElement,
 } from "./chartExport.js";
 
-/** CSS-pixel scale; 2x made zip-all of ~15 live cards too slow. */
-const CHART_CAPTURE_SCALE = 1;
+/** Default scale for bulk exports; single-chart PNG uses a higher scale. */
+const CHART_CAPTURE_SCALE_DEFAULT = 1;
+export const CHART_CAPTURE_SCALE_SINGLE = 2;
+const EXPORT_FONT_FAMILY = "RedHatText, Overpass, Helvetica, Arial, sans-serif";
+
+export type CaptureChartElementOptions = {
+  /** Higher scale sharpens text in PNG exports; keep at 1 for bulk PDF/zip. */
+  scale?: number;
+};
 const HIDDEN_LAYOUT_STYLE_KEYS = [
   "display",
   "position",
@@ -187,6 +194,7 @@ function applyLightThemeSvgText(root: HTMLElement): void {
     }
     node.style.fill = LIGHT_EXPORT_TEXT;
     node.style.color = LIGHT_EXPORT_TEXT;
+    node.style.fontFamily = EXPORT_FONT_FAMILY;
   }
 }
 
@@ -359,7 +367,9 @@ function prepareCaptureLayout(element: HTMLElement): () => void {
 
 export async function captureChartElement(
   element: HTMLElement,
+  options: CaptureChartElementOptions = {},
 ): Promise<HTMLCanvasElement> {
+  const scale = options.scale ?? CHART_CAPTURE_SCALE_DEFAULT;
   const restoreHidden = revealHiddenChartAncestors(element);
   const restoreLayout = prepareCaptureLayout(element);
   element.setAttribute(CHART_EXPORT_CAPTURING_ATTR, "");
@@ -378,15 +388,20 @@ export async function captureChartElement(
       useCORS: true,
       backgroundColor: LIGHT_EXPORT_BACKGROUND,
       logging: false,
-      scale: CHART_CAPTURE_SCALE,
+      scale,
       imageTimeout: 0,
       ignoreElements: (node) =>
         node instanceof Element &&
         shouldIgnoreChartExportElement(node, element),
       onclone: (clonedDoc, clonedElement) => {
+        // Dropping the dark-theme class off the clone root makes every
+        // PatternFly CSS-variable surface (cards, tables, labels) resolve to
+        // light automatically — html2canvas reads computed styles from this
+        // clone. Only Victory's inlined SVG text needs explicit recoloring.
         applyLightThemeToDocument(clonedDoc);
         applyComputedStylesToClone(element, clonedElement);
         applyLightThemeSvgText(clonedElement);
+        clonedElement.style.fontFamily = EXPORT_FONT_FAMILY;
       },
     });
   } finally {

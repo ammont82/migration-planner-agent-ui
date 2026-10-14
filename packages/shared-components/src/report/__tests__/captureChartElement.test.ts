@@ -202,4 +202,51 @@ describe("captureChartElement", () => {
     ).toBe(true);
     expect(card.style.backgroundColor).toBe("rgb(30, 30, 30)");
   });
+
+  it("relights tables and labels via the clone cascade, not by hand-painting them", async () => {
+    document.documentElement.classList.add("pf-v6-theme-dark");
+    const root = document.createElement("div");
+    const label = document.createElement("span");
+    label.className = "pf-v6-c-label pf-m-compact pf-m-outline";
+    const labelContent = document.createElement("span");
+    labelContent.className = "pf-v6-c-label__content";
+    label.append(labelContent);
+    root.append(label);
+    document.body.append(root);
+
+    mockedHtml2Canvas.mockImplementation(async (_element, options) => {
+      const clonedDoc = document.implementation.createHTMLDocument("export");
+      clonedDoc.documentElement.classList.add("pf-v6-theme-dark");
+      const cloneRoot = clonedDoc.createElement("div");
+      const cloneTh = clonedDoc.createElement("th");
+      cloneTh.className = "pf-v6-c-table__th";
+      const cloneLabelContent = clonedDoc.createElement("span");
+      cloneLabelContent.className = "pf-v6-c-label__content";
+      cloneRoot.append(cloneTh, cloneLabelContent);
+      clonedDoc.body.append(cloneRoot);
+
+      await options?.onclone?.(clonedDoc, cloneRoot);
+
+      // Dropping the dark class off the clone root is what relights these
+      // surfaces — the cascade does the work. We must NOT hand-paint inline
+      // colors onto PatternFly table/label nodes, and the live page stays dark.
+      expect(
+        clonedDoc.documentElement.classList.contains("pf-v6-theme-dark"),
+      ).toBe(false);
+      expect(cloneTh.style.backgroundColor).toBe("");
+      expect(cloneLabelContent.style.backgroundColor).toBe("");
+
+      const canvas = document.createElement("canvas");
+      canvas.width = 1;
+      canvas.height = 1;
+      return canvas;
+    });
+
+    await captureChartElement(root);
+
+    expect(
+      document.documentElement.classList.contains("pf-v6-theme-dark"),
+    ).toBe(true);
+    expect(labelContent.style.backgroundColor).toBe("");
+  });
 });

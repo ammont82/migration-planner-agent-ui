@@ -30,6 +30,12 @@ export const dashboardStyles = {
     height: 100%;
   `,
 
+  /**
+   * Flex child of {@link dashboardStyles.card}. `min-height: 0` lets the body
+   * shrink inside the card max-height; `overflow: auto` scrolls tables and tall
+   * charts when needed (phantom scrollbars on donut cards are avoided by the
+   * card layout and ChartExportSurface sizing, not a second body class).
+   */
   cardBodyScrollable: css`
     overflow: auto;
   `,
@@ -38,12 +44,9 @@ export const dashboardStyles = {
   // at the same specificity, which wins in the production build due to stylesheet
   // injection order. `!important` forces `hidden` regardless of that order.
   card: css`
-    min-height: 430px;
-    max-height: 520px;
-    height: 100%;
+    height: 520px;
     display: flex;
     flex-direction: column;
-    justify-content: space-between;
     overflow: hidden !important;
   `,
 

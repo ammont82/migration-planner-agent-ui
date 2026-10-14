@@ -6,6 +6,7 @@ import {
   useRef,
   useState,
 } from "react";
+import { CHART_CAPTURE_SCALE_SINGLE } from "./captureChartElement.js";
 import {
   type ChartCaptureSource,
   type ChartExportFile,
@@ -29,6 +30,7 @@ import { getChartExportFilename } from "./chartExportFilenames.js";
 
 export type CaptureChartElement = (
   element: HTMLElement,
+  options?: import("./captureChartElement.js").CaptureChartElementOptions,
 ) => Promise<HTMLCanvasElement>;
 export type ZipChartFiles = (files: ChartExportFile[]) => Promise<Blob>;
 export type EncodeChartPng = (canvas: HTMLCanvasElement) => Promise<Blob>;
@@ -227,7 +229,9 @@ export const ChartExportProvider: FC<ChartExportProviderProps> = ({
             throw new Error("The chart is not ready to export yet.");
           }
           const captureFn = await resolveCapture(capture);
-          const canvas = await captureFn(chart.element);
+          const canvas = await captureFn(chart.element, {
+            scale: CHART_CAPTURE_SCALE_SINGLE,
+          });
           try {
             downloadFile(await encodePng(canvas), chart.filename);
           } finally {

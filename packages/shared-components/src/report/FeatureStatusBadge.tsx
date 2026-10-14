@@ -21,7 +21,7 @@ export const FeatureStatusBadge: FC<FeatureStatusBadgeProps> = ({ status }) => {
   }
 
   return (
-    <Label color="grey" isCompact icon={<TimesCircleIcon />}>
+    <Label variant="outline" isCompact icon={<TimesCircleIcon />}>
       Disabled
     </Label>
   );
