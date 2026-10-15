@@ -1,18 +1,7 @@
-export const REPORT_EXPORT_SECTION = {
-  inventory: "inventory",
-  assessmentReport: "assessment-report",
-} as const;
-
-export type ReportExportSectionId =
-  (typeof REPORT_EXPORT_SECTION)[keyof typeof REPORT_EXPORT_SECTION];
-
-export const REPORT_EXPORT_SECTION_LABELS: Record<
-  ReportExportSectionId,
-  string
-> = {
-  [REPORT_EXPORT_SECTION.inventory]: "Inventory",
-  [REPORT_EXPORT_SECTION.assessmentReport]: "Assessment report",
-};
+export interface ReportExportSection {
+  id: string;
+  label: string;
+}
 
 export interface ReportExportOption {
   key: string;
@@ -20,7 +9,8 @@ export interface ReportExportOption {
   description?: string;
   onSelect: () => void;
   isDisabled?: boolean;
-  section?: ReportExportSectionId;
+  /** When set, the menu groups rows and shows `label` as the group heading. */
+  section?: ReportExportSection;
 }
 
 export interface StandardReportExportHandlers {
@@ -29,14 +19,30 @@ export interface StandardReportExportHandlers {
   onExportHtml?: () => void;
 }
 
+export type StandardReportExportOptionsConfig = StandardReportExportHandlers & {
+  /** Dropdown group label for PDF / HTML / PNG. Default: `"Assessment report"`. */
+  assessmentSectionLabel?: string;
+};
+
+const DEFAULT_ASSESSMENT_SECTION: ReportExportSection = {
+  id: "assessment-report",
+  label: "Assessment report",
+};
+
 /**
- * Standard report-download actions. Omit a handler to hide that format.
+ * Optional helper for chart-based assessment downloads. Omit a handler to hide
+ * that format. Override `assessmentSectionLabel` if product copy differs per app.
  */
 export const standardReportExportOptions = ({
   onExportPdf,
   onExportPng,
   onExportHtml,
-}: StandardReportExportHandlers): ReportExportOption[] => {
+  assessmentSectionLabel,
+}: StandardReportExportOptionsConfig): ReportExportOption[] => {
+  const section: ReportExportSection = assessmentSectionLabel
+    ? { ...DEFAULT_ASSESSMENT_SECTION, label: assessmentSectionLabel }
+    : DEFAULT_ASSESSMENT_SECTION;
+
   const options: ReportExportOption[] = [];
 
   if (onExportPdf) {
@@ -44,7 +50,7 @@ export const standardReportExportOptions = ({
       key: "pdf",
       label: "PDF",
       onSelect: onExportPdf,
-      section: REPORT_EXPORT_SECTION.assessmentReport,
+      section,
     });
   }
 
@@ -53,7 +59,7 @@ export const standardReportExportOptions = ({
       key: "html",
       label: "HTML",
       onSelect: onExportHtml,
-      section: REPORT_EXPORT_SECTION.assessmentReport,
+      section,
     });
   }
 
@@ -62,7 +68,7 @@ export const standardReportExportOptions = ({
       key: "png",
       label: "PNG",
       onSelect: onExportPng,
-      section: REPORT_EXPORT_SECTION.assessmentReport,
+      section,
     });
   }
 

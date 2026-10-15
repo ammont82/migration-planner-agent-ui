@@ -1,9 +1,14 @@
 import {
-  REPORT_EXPORT_SECTION,
   type ReportExportOption,
+  type ReportExportSection,
   type StandardReportExportHandlers,
   standardReportExportOptions,
 } from "@openshift-migration-advisor/shared-components";
+
+export const OVERVIEW_INVENTORY_EXPORT_SECTION: ReportExportSection = {
+  id: "inventory",
+  label: "Inventory",
+};
 
 export type InventoryExportHandlers = {
   onExportCsv?: () => void;
@@ -12,46 +17,46 @@ export type InventoryExportHandlers = {
 };
 
 export type OverviewExportHandlers = StandardReportExportHandlers &
-  InventoryExportHandlers & {
-    enableInventoryExports?: boolean;
-  };
+  InventoryExportHandlers;
 
+/**
+ * Composes export menu rows for the VM overview. Inventory rows appear only when
+ * the corresponding handlers are provided.
+ */
 export function buildOverviewExportOptions({
-  enableInventoryExports = true,
   onExportCsv,
   onExportXlsx,
   onExportJsonZip,
   ...handlers
 }: OverviewExportHandlers): ReportExportOption[] {
   const inventoryOptions: ReportExportOption[] = [];
+  const section = OVERVIEW_INVENTORY_EXPORT_SECTION;
 
-  if (enableInventoryExports) {
-    if (onExportCsv) {
-      inventoryOptions.push({
-        key: "inventory-csv",
-        label: "CSV",
-        onSelect: onExportCsv,
-        section: REPORT_EXPORT_SECTION.inventory,
-      });
-    }
-    if (onExportXlsx) {
-      inventoryOptions.push({
-        key: "inventory-xlsx",
-        label: "XLSX",
-        onSelect: onExportXlsx,
-        section: REPORT_EXPORT_SECTION.inventory,
-      });
-    }
-    if (onExportJsonZip) {
-      inventoryOptions.push({
-        key: "inventory-json-zip",
-        label: "JSON (ZIP)",
-        description:
-          "Main inventory and group inventories for upload to the Migration Advisor console",
-        onSelect: onExportJsonZip,
-        section: REPORT_EXPORT_SECTION.inventory,
-      });
-    }
+  if (onExportCsv) {
+    inventoryOptions.push({
+      key: "inventory-csv",
+      label: "CSV",
+      onSelect: onExportCsv,
+      section,
+    });
+  }
+  if (onExportXlsx) {
+    inventoryOptions.push({
+      key: "inventory-xlsx",
+      label: "XLSX",
+      onSelect: onExportXlsx,
+      section,
+    });
+  }
+  if (onExportJsonZip) {
+    inventoryOptions.push({
+      key: "inventory-json-zip",
+      label: "JSON (ZIP)",
+      description:
+        "Main inventory and group inventories for upload to the Migration Advisor console",
+      onSelect: onExportJsonZip,
+      section,
+    });
   }
 
   return [...inventoryOptions, ...standardReportExportOptions(handlers)];

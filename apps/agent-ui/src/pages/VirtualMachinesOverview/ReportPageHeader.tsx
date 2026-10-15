@@ -14,7 +14,6 @@ import {
   InputGroupItem,
 } from "@patternfly/react-core";
 import type React from "react";
-import { isApplianceUi } from "../../common/isApplianceUi";
 import { DeleteCollectedDataButton } from "../../common/report/DeleteCollectedDataButton";
 import { ExportButton } from "../../common/report/ExportButton";
 import { RunNewReportButton } from "../../common/report/RunNewReportButton";
@@ -76,7 +75,6 @@ ReportPageHeader.displayName = "ReportPageHeader";
 
 interface OverviewReportHeaderProps {
   showExport?: boolean;
-  enableInventoryExports?: boolean;
   onExportCsv?: () => void;
   onExportXlsx?: () => void;
   onExportJsonZip?: () => void;
@@ -89,7 +87,6 @@ interface OverviewReportHeaderProps {
 
 export const OverviewReportHeader: React.FC<OverviewReportHeaderProps> = ({
   showExport = false,
-  enableInventoryExports = isApplianceUi(),
   onExportCsv,
   onExportXlsx,
   onExportJsonZip,
@@ -117,7 +114,6 @@ export const OverviewReportHeader: React.FC<OverviewReportHeaderProps> = ({
             void charts.downloadHtml(documentTitle);
           }
         : undefined,
-    enableInventoryExports,
     onExportCsv: showExport ? onExportCsv : undefined,
     onExportXlsx: showExport ? onExportXlsx : undefined,
     onExportJsonZip: showExport ? onExportJsonZip : undefined,

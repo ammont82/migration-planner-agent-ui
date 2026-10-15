@@ -29,13 +29,27 @@ describe("buildOverviewExportOptions", () => {
     ]);
   });
 
-  it("omits inventory exports when disabled for SaaS hosting", () => {
+  it("omits inventory exports when handlers are not provided", () => {
     expect(
       buildOverviewExportOptions({
-        enableInventoryExports: false,
-        onExportCsv: vi.fn(),
         onExportPdf: vi.fn(),
       }).map((option) => option.key),
     ).toEqual(["pdf"]);
+  });
+
+  it("assigns inventory section metadata on inventory rows", () => {
+    const options = buildOverviewExportOptions({
+      onExportCsv: vi.fn(),
+      onExportPdf: vi.fn(),
+    });
+
+    expect(options[0].section).toEqual({
+      id: "inventory",
+      label: "Inventory",
+    });
+    expect(options[1].section).toEqual({
+      id: "assessment-report",
+      label: "Assessment report",
+    });
   });
 });

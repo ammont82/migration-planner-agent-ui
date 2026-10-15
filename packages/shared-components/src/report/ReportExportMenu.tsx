@@ -11,28 +11,33 @@ import {
 import { DownloadIcon } from "@patternfly/react-icons";
 import { type FC, type ReactNode, type Ref, useMemo, useState } from "react";
 import {
-  REPORT_EXPORT_SECTION_LABELS,
   type ReportExportOption,
-  type ReportExportSectionId,
+  type ReportExportSection,
   type StandardReportExportHandlers,
   standardReportExportOptions,
 } from "./reportExportOptions.js";
 
-function groupExportOptions(
-  options: ReportExportOption[],
-): { sectionId?: ReportExportSectionId; options: ReportExportOption[] }[] {
+function sectionGroupKey(section?: ReportExportSection): string | undefined {
+  return section?.id;
+}
+
+function groupExportOptions(options: ReportExportOption[]): {
+  section?: ReportExportSection;
+  options: ReportExportOption[];
+}[] {
   const groups: {
-    sectionId?: ReportExportSectionId;
+    section?: ReportExportSection;
     options: ReportExportOption[];
   }[] = [];
 
   for (const option of options) {
-    const sectionId = option.section;
+    const sectionKey = sectionGroupKey(option.section);
     const last = groups.length > 0 ? groups[groups.length - 1] : undefined;
-    if (last && last.sectionId === sectionId) {
+    const lastKey = last ? sectionGroupKey(last.section) : undefined;
+    if (last && lastKey === sectionKey) {
       last.options.push(option);
     } else {
-      groups.push({ sectionId, options: [option] });
+      groups.push({ section: option.section, options: [option] });
     }
   }
 
@@ -65,7 +70,8 @@ export const ReportExportMenu: FC<ReportExportMenuProps> = ({
   const menuItems: ReactNode[] = [];
   optionGroups.forEach((group, index) => {
     if (index > 0) {
-      const dividerKey = group.sectionId ?? group.options[0]?.key ?? "flat";
+      const dividerKey =
+        group.section?.id ?? group.options[0]?.key ?? "ungrouped";
       menuItems.push(
         <Divider key={`divider-before-${dividerKey}`} component="li" />,
       );
@@ -82,12 +88,9 @@ export const ReportExportMenu: FC<ReportExportMenuProps> = ({
       </DropdownItem>
     ));
 
-    if (group.sectionId) {
+    if (group.section) {
       menuItems.push(
-        <DropdownGroup
-          key={group.sectionId}
-          label={REPORT_EXPORT_SECTION_LABELS[group.sectionId]}
-        >
+        <DropdownGroup key={group.section.id} label={group.section.label}>
           {items}
         </DropdownGroup>,
       );
@@ -144,6 +147,7 @@ export interface ExportReportButtonProps extends StandardReportExportHandlers {
   loadingLabel?: string | null;
   isDisabled?: boolean;
   toggleLabel?: string;
+  assessmentSectionLabel?: string;
 }
 
 export const ExportReportButton: FC<ExportReportButtonProps> = ({
@@ -151,6 +155,7 @@ export const ExportReportButton: FC<ExportReportButtonProps> = ({
   onExportPng,
   onExportHtml,
   extraOptions = [],
+  assessmentSectionLabel,
   ...menuProps
 }) => (
   <ReportExportMenu
@@ -159,6 +164,7 @@ export const ExportReportButton: FC<ExportReportButtonProps> = ({
         onExportPdf,
         onExportPng,
         onExportHtml,
+        assessmentSectionLabel,
       }),
       ...extraOptions,
     ]}

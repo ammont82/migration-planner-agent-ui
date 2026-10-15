@@ -189,6 +189,7 @@ The development server supports hot module replacement (HMR). Changes to your so
 
 ## Additional Resources
 
+- [Report export menu architecture](./report-export-menu.md)
 - [Migration Planner Repository](https://github.com/kubev2v/migration-planner)
 - [Assisted Migration Agent Repository](https://github.com/kubev2v/assisted-migration-agent)
 - [PatternFly Documentation](https://www.patternfly.org/v6/)

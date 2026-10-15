@@ -191,11 +191,10 @@ export {
 } from "./ReportExportMenu.js";
 export { ReportTable, type ReportTableProps } from "./ReportTable.js";
 export {
-  REPORT_EXPORT_SECTION,
-  REPORT_EXPORT_SECTION_LABELS,
   type ReportExportOption,
-  type ReportExportSectionId,
+  type ReportExportSection,
   type StandardReportExportHandlers,
+  type StandardReportExportOptionsConfig,
   standardReportExportOptions,
 } from "./reportExportOptions.js";
 export { SupportTierBadge } from "./SupportTierBadge.js";
