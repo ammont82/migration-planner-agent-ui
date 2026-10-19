@@ -3,7 +3,6 @@ import { Button, Flex, FlexItem, Popover } from "@patternfly/react-core";
 import { InfoCircleIcon } from "@patternfly/react-icons";
 import type { FC } from "react";
 import { chartExportHideProps } from "./chartExport.js";
-import { popoverPlainCloseButtonStyle } from "./popoverStyles.js";
 
 const infoButtonStyle = css`
   padding: 0;
@@ -18,7 +17,6 @@ export const OsUpgradeRecommendationPopover: FC<
   OsUpgradeRecommendationPopoverProps
 > = ({ upgradeRecommendation }) => (
   <Popover
-    className={popoverPlainCloseButtonStyle}
     position="bottom"
     headerContent="Upgrade to get support"
     bodyContent={<div>{upgradeRecommendation}</div>}

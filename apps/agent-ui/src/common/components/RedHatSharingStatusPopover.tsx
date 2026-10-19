@@ -1,7 +1,4 @@
-import {
-  PopoverIcon,
-  popoverPlainCloseButtonStyle,
-} from "@openshift-migration-advisor/shared-components";
+import { PopoverIcon } from "@openshift-migration-advisor/shared-components";
 import { Content } from "@patternfly/react-core";
 import type React from "react";
 import { PrivacyPolicyLink } from "./PrivacyPolicyLink";
@@ -16,7 +13,6 @@ export const RedHatSharingStatusPopover: React.FC<
 > = ({ onShare }) => {
   return (
     <PopoverIcon
-      className={popoverPlainCloseButtonStyle}
       position="bottom-start"
       headerContent="Red Hat sharing status"
       withFocusTrap={false}

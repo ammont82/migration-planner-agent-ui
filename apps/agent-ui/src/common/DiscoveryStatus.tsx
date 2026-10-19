@@ -1,8 +1,8 @@
-import { css } from "@emotion/css";
 import {
   Content,
   Flex,
   FlexItem,
+  Icon,
   Stack,
   StackItem,
   Tooltip,
@@ -25,18 +25,6 @@ import {
 import { RedHatSharingStatusPopover } from "./components/RedHatSharingStatusPopover";
 import useLocalStorage from "./hooks/useLocalStorage";
 import { useAgentStatus } from "./useAgentStatus";
-
-const dangerIconStyle = css`
-  color: var(--pf-t--global--icon--color--status--danger--default);
-`;
-
-const successIconStyle = css`
-  color: var(--pf-t--global--icon--color--status--success--default);
-`;
-
-const notSharingIconStyle = css`
-  color: var(--pf-t--global--icon--color--status--danger--default);
-`;
 
 export const DiscoveryStatus: React.FC = () => {
   const { data: collections } = useListCollectionsQuery();
@@ -98,7 +86,9 @@ export const DiscoveryStatus: React.FC = () => {
       <Tooltip content={discoverySharingError}>
         <Flex columnGap={{ default: "columnGapXs" }}>
           <FlexItem>
-            <ExclamationCircleIcon className={dangerIconStyle} />
+            <Icon status="danger">
+              <ExclamationCircleIcon />
+            </Icon>
           </FlexItem>
           <FlexItem>{discoverySharingStatus}</FlexItem>
         </Flex>
@@ -111,7 +101,9 @@ export const DiscoveryStatus: React.FC = () => {
         alignItems={{ default: "alignItemsCenter" }}
       >
         <FlexItem>
-          <CheckCircleIcon className={successIconStyle} />
+          <Icon status="success">
+            <CheckCircleIcon />
+          </Icon>
         </FlexItem>
         <FlexItem>{discoverySharingStatus}</FlexItem>
       </Flex>
@@ -123,7 +115,9 @@ export const DiscoveryStatus: React.FC = () => {
         alignItems={{ default: "alignItemsCenter" }}
       >
         <FlexItem>
-          <TimesCircleIcon className={notSharingIconStyle} />
+          <Icon status="danger">
+            <TimesCircleIcon />
+          </Icon>
         </FlexItem>
         <FlexItem>{discoverySharingStatus}</FlexItem>
         <FlexItem>
