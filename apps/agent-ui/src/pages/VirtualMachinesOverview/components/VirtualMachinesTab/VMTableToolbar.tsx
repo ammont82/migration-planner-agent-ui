@@ -3,7 +3,6 @@ import type React from "react";
 import { attributeValueFilterToolbarStyle } from "../../../../common/components/attribute-value-filter";
 import { VMTableActionBar } from "./VMTableActionBar";
 import { VMTableFilterBar } from "./VMTableFilterBar";
-import { vmTableToolbarStyle } from "./vmTableShared";
 import type { VMTableToolbarProps } from "./vmTableToolbarTypes";
 
 export type { VMTableToolbarProps } from "./vmTableToolbarTypes";
@@ -67,7 +66,7 @@ export const VMTableToolbar: React.FC<VMTableToolbarProps> = (props) => {
 
   return (
     <Toolbar
-      className={`${attributeValueFilterToolbarStyle} ${vmTableToolbarStyle}`}
+      className={attributeValueFilterToolbarStyle}
       clearAllFilters={logic.clearAllFilters}
     >
       <ToolbarContent>
