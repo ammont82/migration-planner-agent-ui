@@ -427,6 +427,20 @@ export const StorageOverview: FC<StorageOverviewProps> = ({
       .sort((a, b) => orderIndex(a.name) - orderIndex(b.name));
   }, [diskTypes]);
 
+  const isSharedDisksViewAvailable = totalWithSharedDisks !== 0;
+
+  // Exclude the "Shared disks" view from the chart export cycle (used to
+  // build the PDF/PNG/HTML exports) when that view is disabled in the
+  // dropdown, so the exported report stays consistent with what's
+  // selectable on screen.
+  const availableExportViewLabels = useMemo(() => {
+    if (isSharedDisksViewAvailable) {
+      return VIEW_MODE_LABELS;
+    }
+    const { sharedDisks: _sharedDisks, ...rest } = VIEW_MODE_LABELS;
+    return rest;
+  }, [isSharedDisksViewAvailable]);
+
   const sharedDisksChartData = useMemo(() => {
     if (
       totalWithSharedDisks === undefined ||
@@ -489,7 +503,10 @@ export const StorageOverview: FC<StorageOverviewProps> = ({
     <ChartExportSurface
       id={CHART_ID}
       title={chartTitle}
-      exportViews={chartExportViewsFromLabels(CHART_TITLE, VIEW_MODE_LABELS)}
+      exportViews={chartExportViewsFromLabels(
+        CHART_TITLE,
+        availableExportViewLabels,
+      )}
       activeExportViewId={viewMode}
       onExportViewChange={(viewId) => {
         if (isViewMode(viewId)) {

@@ -27,6 +27,23 @@ vi.mock("../../charts/MigrationDonutChart.js", () => ({
   },
 }));
 
+vi.mock("../ChartExportSurface.js", () => ({
+  ChartExportSurface: ({
+    exportViews,
+    children,
+  }: {
+    exportViews?: Array<{ id: string; title: string }>;
+    children?: React.ReactNode;
+  }): JSX.Element => (
+    <div
+      data-testid="chart-export-surface"
+      data-export-view-ids={JSON.stringify(exportViews?.map((view) => view.id))}
+    >
+      {children}
+    </div>
+  ),
+}));
+
 afterEach(() => {
   donutProps.current = null;
   cleanup();
@@ -169,6 +186,33 @@ describe("StorageOverview", () => {
       "With shared disks": chart_color_yellow_400.value,
       "No shared disks": chart_color_blue_300.value,
     });
+  });
+
+  it("excludes the shared disks view from the chart export cycle when disabled, so PDF/PNG/HTML exports stay consistent with the dropdown", () => {
+    render(<StorageOverview totalVMs={10} totalWithSharedDisks={0} />);
+
+    const exportViewIds = JSON.parse(
+      screen
+        .getByTestId("chart-export-surface")
+        .getAttribute("data-export-view-ids") || "[]",
+    ) as string[];
+
+    expect(exportViewIds).not.toContain("sharedDisks");
+    expect(exportViewIds).toEqual(
+      expect.arrayContaining(["totalSize", "vmCount", "vmCountByDiskType"]),
+    );
+  });
+
+  it("includes the shared disks view in the chart export cycle when available", () => {
+    render(<StorageOverview totalVMs={10} totalWithSharedDisks={4} />);
+
+    const exportViewIds = JSON.parse(
+      screen
+        .getByTestId("chart-export-surface")
+        .getAttribute("data-export-view-ids") || "[]",
+    ) as string[];
+
+    expect(exportViewIds).toContain("sharedDisks");
   });
 
   it("disables the shared-disks view when no VMs have shared disks", async () => {
