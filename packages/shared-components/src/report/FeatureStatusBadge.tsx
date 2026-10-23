@@ -1,4 +1,4 @@
-import { Label } from "@patternfly/react-core";
+import { Icon, Label } from "@patternfly/react-core";
 import { CheckCircleIcon, TimesCircleIcon } from "@patternfly/react-icons";
 import type { FC } from "react";
 import type { FeatureStatus } from "./infrastructureSummaryModel.js";
@@ -21,7 +21,15 @@ export const FeatureStatusBadge: FC<FeatureStatusBadgeProps> = ({ status }) => {
   }
 
   return (
-    <Label variant="outline" isCompact icon={<TimesCircleIcon />}>
+    <Label
+      variant="outline"
+      isCompact
+      icon={
+        <Icon status="danger">
+          <TimesCircleIcon />
+        </Icon>
+      }
+    >
       Disabled
     </Label>
   );
