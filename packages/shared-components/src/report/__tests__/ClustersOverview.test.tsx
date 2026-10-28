@@ -189,19 +189,19 @@ describe("ClustersOverview", () => {
 
     expect(screen.queryByTestId("clusters-donut")).not.toBeInTheDocument();
     expect(screen.getByText("8")).toHaveStyle({
-      background: chart_color_blue_300.value,
+      backgroundColor: chart_color_blue_300.value,
     });
     expect(screen.getByText("4.25")).toHaveStyle({
-      background: chart_color_purple_300.value,
+      backgroundColor: chart_color_purple_300.value,
     });
     expect(screen.getByText("3.5")).toHaveStyle({
-      background: chart_color_purple_100.value,
+      backgroundColor: chart_color_purple_100.value,
     });
     expect(screen.getByText("2")).toHaveStyle({
-      background: chart_color_teal_200.value,
+      backgroundColor: chart_color_teal_200.value,
     });
     expect(screen.getByText("1")).toHaveStyle({
-      background: chart_color_yellow_400.value,
+      backgroundColor: chart_color_yellow_400.value,
     });
     expect(screen.queryByText("0.5")).not.toBeInTheDocument();
     expect(screen.getByText("Cluster 1 (8)")).toBeInTheDocument();
