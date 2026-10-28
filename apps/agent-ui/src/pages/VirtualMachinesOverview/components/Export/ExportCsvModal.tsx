@@ -24,6 +24,8 @@ import {
   EXPORT_SCOPE_OPTIONS,
   type ExportFormat,
   type ExportScopeId,
+  type ExportScopeOption,
+  PROCESSES_EXPORT_SCOPE_ID,
 } from "./exportScopes";
 
 const scopeDescriptionStyle = css`
@@ -45,6 +47,7 @@ const scopeListStyle = css`
 interface ExportCsvModalProps {
   isOpen: boolean;
   initialFormat?: ExportFormat;
+  scopeOptions?: ExportScopeOption[];
   error?: string | null;
   isExporting?: boolean;
   onClose: () => void;
@@ -57,6 +60,7 @@ interface ExportCsvModalProps {
 export const ExportCsvModal: React.FC<ExportCsvModalProps> = ({
   isOpen,
   initialFormat = DEFAULT_EXPORT_FORMAT,
+  scopeOptions = EXPORT_SCOPE_OPTIONS,
   error = null,
   isExporting = false,
   onClose,
@@ -70,8 +74,8 @@ export const ExportCsvModal: React.FC<ExportCsvModalProps> = ({
   );
 
   const allScopeIds = useMemo(
-    () => EXPORT_SCOPE_OPTIONS.map((option) => option.id),
-    [],
+    () => scopeOptions.map((option) => option.id),
+    [scopeOptions],
   );
 
   useEffect(() => {
@@ -109,6 +113,10 @@ export const ExportCsvModal: React.FC<ExportCsvModalProps> = ({
 
     void onExport(selectedScopes, selectedFormat);
   };
+
+  const includesProcessesScope = selectedScopes.includes(
+    PROCESSES_EXPORT_SCOPE_ID,
+  );
 
   return (
     <Modal
@@ -189,10 +197,11 @@ export const ExportCsvModal: React.FC<ExportCsvModalProps> = ({
           </StackItem>
           <StackItem className={scopeListStyle}>
             <Stack hasGutter>
-              {EXPORT_SCOPE_OPTIONS.map((option) => (
+              {scopeOptions.map((option) => (
                 <StackItem key={option.id}>
                   <Checkbox
                     id={`export-scope-${option.id}`}
+                    aria-label={option.label}
                     label={
                       <div>
                         <div className={scopeLabelStyle}>{option.label}</div>
@@ -212,6 +221,20 @@ export const ExportCsvModal: React.FC<ExportCsvModalProps> = ({
               ))}
             </Stack>
           </StackItem>
+          {includesProcessesScope ? (
+            <StackItem>
+              <Alert
+                variant="info"
+                isInline
+                title="Some virtual machines may not include process data"
+              >
+                Process information is collected from powered-on virtual
+                machines during discovery. VMs without process data are omitted
+                from the processes export; other selected scopes are still
+                included.
+              </Alert>
+            </StackItem>
+          ) : null}
         </Stack>
       </ModalBody>
       <ModalFooter>

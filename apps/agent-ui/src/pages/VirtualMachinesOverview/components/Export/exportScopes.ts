@@ -19,7 +19,11 @@ export type ExportScopeId =
   | "utilization"
   | "storage-forecast"
   | "applications"
+  | "processes"
   | "groups";
+
+export const PROCESSES_EXPORT_SCOPE_ID =
+  "processes" as const satisfies ExportScopeId;
 
 export type ExportScopeOption = {
   id: ExportScopeId;
@@ -74,11 +78,30 @@ export const EXPORT_SCOPE_OPTIONS: ExportScopeOption[] = [
     description: "Discovered applications and VM mappings",
   },
   {
+    id: PROCESSES_EXPORT_SCOPE_ID,
+    label: "VM processes",
+    description:
+      "Processes detected on powered-on virtual machines during discovery",
+  },
+  {
     id: "groups",
     label: "Groups",
     description: "Custom VM groups and membership",
   },
 ];
+
+export function buildExportScopeOptions(options?: {
+  includeProcessesExport?: boolean;
+}): ExportScopeOption[] {
+  const includeProcessesExport = options?.includeProcessesExport ?? true;
+  if (includeProcessesExport) {
+    return EXPORT_SCOPE_OPTIONS;
+  }
+
+  return EXPORT_SCOPE_OPTIONS.filter(
+    (option) => option.id !== PROCESSES_EXPORT_SCOPE_ID,
+  );
+}
 
 export const DEFAULT_EXPORT_SCOPES: ExportScopeId[] = ["overview"];
 
