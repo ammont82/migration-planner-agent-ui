@@ -12,6 +12,12 @@ import {
 import { useSearchParams } from "react-router-dom";
 import useLocalStorage from "../../../../common/hooks/useLocalStorage";
 import type { VirtualMachineWithGroupItems } from "../../../Groups/utils/vmGroupMembership";
+import {
+  getClusterParam,
+  REPORT_TAB,
+  setClusterParam,
+  setTabParam,
+} from "../../reportTabNavigation";
 import { getMigrationExcluded } from "../../virtualMachineParsing";
 import { filtersToSearchParams, type VMFilters } from "./vmFilters";
 import { buildVmTableFilterAttributes } from "./vmTableFilterAttributes";
@@ -446,7 +452,8 @@ export function useVMTableLogic({
     };
 
     const newParams = filtersToSearchParams(currentFilters);
-    newParams.set("tab", "vms");
+    setTabParam(newParams, REPORT_TAB.vms);
+    setClusterParam(newParams, getClusterParam(searchParams));
 
     setSearchParams(newParams, { replace: true });
 
@@ -475,7 +482,7 @@ export function useVMTableLogic({
     diskUsageRangeFilter,
     setSearchParams,
     onFiltersChange,
-    searchParams.get,
+    searchParams,
   ]);
 
   // Build list of applied filters for chip display

@@ -79,9 +79,11 @@ import {
   buildVmDetailUrl,
   buildVmsTabUrl,
   clearVmFilterParams,
+  getClusterParam,
   REPORT_TAB,
-  reportTabToParam,
   resolveReportTab,
+  setClusterParam,
+  setTabParam,
 } from "../VirtualMachinesOverview/reportTabNavigation";
 import { normalizeVirtualMachines } from "../VirtualMachinesOverview/virtualMachineParsing";
 import { DeleteGroupModal } from "./components/modals/DeleteGroupModal";
@@ -119,7 +121,7 @@ export const GroupDetailPage: React.FC = () => {
   const agentApi = getAgentApiClient();
   const [searchParams, setSearchParams] = useSearchParams();
 
-  const [selectedClusterId, setSelectedClusterId] = useState<string>("all");
+  const selectedClusterId = getClusterParam(searchParams);
   const [isClusterSelectOpen, setIsClusterSelectOpen] = useState(false);
   const [isActionsOpen, setIsActionsOpen] = useState(false);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
@@ -222,10 +224,11 @@ export const GroupDetailPage: React.FC = () => {
     (filters: VMFilters) => {
       setVmsPage(1);
       const newParams = filtersToSearchParams(filters);
-      newParams.set("tab", "vms");
+      setTabParam(newParams, REPORT_TAB.vms);
+      setClusterParam(newParams, getClusterParam(searchParams));
       setSearchParams(newParams, { replace: true });
     },
-    [setSearchParams],
+    [searchParams, setSearchParams],
   );
 
   const [updateGroupName] = useUpdateGroupNameMutation();
@@ -274,13 +277,13 @@ export const GroupDetailPage: React.FC = () => {
 
   const handleClusterSelect = (
     _event: React.MouseEvent<Element, MouseEvent> | undefined,
-    value: string | number | undefined,
+    clusterId: string | number | undefined,
   ): void => {
-    if (typeof value === "string") {
-      setSelectedClusterId(value);
+    if (typeof clusterId === "string") {
       setVmsPage(1);
       const newParams = new URLSearchParams(searchParams);
-      newParams.set("tab", reportTabToParam(activeTab));
+      setClusterParam(newParams, clusterId);
+      setTabParam(newParams, activeTab);
       newParams.delete("vmId");
       clearVmFilterParams(newParams);
       setSearchParams(newParams, { replace: true });

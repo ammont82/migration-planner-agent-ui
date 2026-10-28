@@ -7,6 +7,36 @@ export const REPORT_TAB = {
 
 export type ReportTabIndex = (typeof REPORT_TAB)[keyof typeof REPORT_TAB];
 
+/**
+ * Page-level vSphere cluster scope (header dropdown).
+ * Distinct from the VM-table multi-select filter param `clusters`.
+ */
+export const CLUSTER_PARAM = "cluster";
+
+export function getClusterParam(searchParams: URLSearchParams): string {
+  return searchParams.get(CLUSTER_PARAM) ?? "all";
+}
+
+/** Writes or clears the cluster scope param (`all` / empty removes it). */
+export function setClusterParam(
+  params: URLSearchParams,
+  clusterId: string,
+): void {
+  if (!clusterId || clusterId === "all") {
+    params.delete(CLUSTER_PARAM);
+  } else {
+    params.set(CLUSTER_PARAM, clusterId);
+  }
+}
+
+/** Writes the active report tab param. */
+export function setTabParam(
+  params: URLSearchParams,
+  tabIndex: string | number,
+): void {
+  params.set("tab", reportTabToParam(tabIndex));
+}
+
 export function reportTabFromParam(tabParam: string | null): ReportTabIndex {
   if (tabParam === "vms") {
     return REPORT_TAB.vms;
@@ -41,7 +71,7 @@ export function resolveReportTab(
   return REPORT_TAB.overview;
 }
 
-export function reportTabToParam(tabIndex: string | number): string {
+function reportTabToParam(tabIndex: string | number): string {
   if (tabIndex === REPORT_TAB.vms) {
     return "vms";
   }
@@ -88,7 +118,7 @@ export function buildVmDetailUrl(
 ): URLSearchParams {
   const params = new URLSearchParams(searchParams);
   params.delete("application");
-  params.set("tab", "vms");
+  setTabParam(params, REPORT_TAB.vms);
   params.set("vmId", vmId);
   if (options?.section) {
     params.set("vmSection", options.section);
@@ -103,7 +133,7 @@ export function buildApplicationsTabUrl(
 ): URLSearchParams {
   const params = new URLSearchParams(searchParams);
   params.delete("vmId");
-  params.set("tab", "applications");
+  setTabParam(params, REPORT_TAB.applications);
   return params;
 }
 
@@ -119,7 +149,7 @@ export function buildApplicationDetailUrl(
 export function buildVmsTabUrl(searchParams: URLSearchParams): URLSearchParams {
   const params = new URLSearchParams(searchParams);
   params.delete("vmId");
-  params.set("tab", "vms");
+  setTabParam(params, REPORT_TAB.vms);
   return params;
 }
 
@@ -128,6 +158,6 @@ export function buildOverviewTabUrl(
 ): URLSearchParams {
   const params = new URLSearchParams(searchParams);
   params.delete("vmId");
-  params.set("tab", "overview");
+  setTabParam(params, REPORT_TAB.overview);
   return params;
 }

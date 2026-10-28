@@ -67,9 +67,11 @@ import {
   buildVmDetailUrl,
   buildVmsTabUrl,
   clearVmFilterParams,
+  getClusterParam,
   REPORT_TAB,
-  reportTabToParam,
   resolveReportTab,
+  setClusterParam,
+  setTabParam,
 } from "./reportTabNavigation";
 import { normalizeVirtualMachines } from "./virtualMachineParsing";
 
@@ -90,7 +92,7 @@ export const ReportContainer: React.FC = () => {
   const hasCollectionData = (collections?.length ?? 0) > 0;
   const newestCollectionId = collections?.[0]?.id;
   const [searchParams, setSearchParams] = useSearchParams();
-  const [selectedClusterId, setSelectedClusterId] = useState<string>("all");
+  const selectedClusterId = getClusterParam(searchParams);
   const [isClusterSelectOpen, setIsClusterSelectOpen] = useState(false);
 
   // VM pagination state (client-only; the query keys on these values)
@@ -111,10 +113,11 @@ export const ReportContainer: React.FC = () => {
     (filters: VMFilters) => {
       setVmsPage(1);
       const newParams = filtersToSearchParams(filters);
-      newParams.set("tab", "vms");
+      setTabParam(newParams, REPORT_TAB.vms);
+      setClusterParam(newParams, getClusterParam(searchParams));
       setSearchParams(newParams, { replace: true });
     },
-    [setSearchParams],
+    [searchParams, setSearchParams],
   );
 
   const handleClearSelectedApplication = useCallback(() => {
@@ -312,10 +315,10 @@ export const ReportContainer: React.FC = () => {
     value: string | number | undefined,
   ): void => {
     if (typeof value === "string") {
-      setSelectedClusterId(value);
       setVmsPage(1);
       const newParams = new URLSearchParams(searchParams);
-      newParams.set("tab", reportTabToParam(activeTab));
+      setClusterParam(newParams, value);
+      setTabParam(newParams, activeTab);
       newParams.delete("vmId");
       clearVmFilterParams(newParams);
       setSearchParams(newParams, { replace: true });
@@ -363,7 +366,8 @@ export const ReportContainer: React.FC = () => {
     const newParams = filtersToSearchParams({
       concernLabels: [concernLabel],
     });
-    newParams.set("tab", "vms");
+    setTabParam(newParams, REPORT_TAB.vms);
+    setClusterParam(newParams, getClusterParam(searchParams));
     setSearchParams(newParams, { replace: true });
     setVmsPage(1);
   };
