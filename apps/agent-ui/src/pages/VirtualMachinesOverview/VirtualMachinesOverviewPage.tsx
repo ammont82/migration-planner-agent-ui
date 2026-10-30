@@ -225,7 +225,6 @@ export const ReportContainer: React.FC = () => {
     isExportModalOpen,
     modalInitialFormat,
     showExport,
-    exportScopeOptions,
     exportError,
     isExporting,
     openExportModal,
@@ -236,7 +235,6 @@ export const ReportContainer: React.FC = () => {
   } = useExportInventory(agentApi, {
     hasCollectionData,
     hasInventory: Boolean(inventory),
-    includeProcessesExportOption: !isRvtoolsMode,
   });
 
   if (inventoryLoading) {
@@ -569,7 +567,6 @@ export const ReportContainer: React.FC = () => {
         <ExportCsvModal
           isOpen={isExportModalOpen}
           initialFormat={modalInitialFormat}
-          scopeOptions={exportScopeOptions}
           error={exportError}
           isExporting={isExporting}
           onClose={closeExportModal}

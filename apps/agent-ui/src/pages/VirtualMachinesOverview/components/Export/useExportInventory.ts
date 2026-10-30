@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useRef, useState } from "react";
+import { useCallback, useRef, useState } from "react";
 import type { DefaultApiInterface } from "../../../../api/agentApi";
 import { downloadExportBlob, getExportFilename } from "./downloadExportBlob";
 import {
@@ -6,7 +6,6 @@ import {
   fetchExportInventory,
 } from "./exportInventoryApi";
 import {
-  buildExportScopeOptions,
   DEFAULT_EXPORT_FORMAT,
   type ExportFormat,
   type ExportScopeId,
@@ -15,17 +14,11 @@ import {
 type UseExportInventoryOptions = {
   hasCollectionData: boolean;
   hasInventory: boolean;
-  /** When false, hides the VM processes export scope (e.g. RVTools mode). */
-  includeProcessesExportOption?: boolean;
 };
 
 export function useExportInventory(
   agentApi: DefaultApiInterface,
-  {
-    hasCollectionData,
-    hasInventory,
-    includeProcessesExportOption = true,
-  }: UseExportInventoryOptions,
+  { hasCollectionData, hasInventory }: UseExportInventoryOptions,
 ) {
   const [isExportModalOpen, setIsExportModalOpen] = useState(false);
   const [modalInitialFormat, setModalInitialFormat] = useState<ExportFormat>(
@@ -36,14 +29,6 @@ export function useExportInventory(
   const isExportingRef = useRef(false);
 
   const showExport = hasCollectionData && hasInventory;
-
-  const exportScopeOptions = useMemo(
-    () =>
-      buildExportScopeOptions({
-        includeProcessesExport: includeProcessesExportOption,
-      }),
-    [includeProcessesExportOption],
-  );
 
   const openExportModal = useCallback((format: ExportFormat = "xlsx") => {
     setExportError(null);
@@ -123,7 +108,6 @@ export function useExportInventory(
     isExportModalOpen,
     modalInitialFormat,
     showExport,
-    exportScopeOptions,
     exportError,
     isExporting,
     openExportModal,

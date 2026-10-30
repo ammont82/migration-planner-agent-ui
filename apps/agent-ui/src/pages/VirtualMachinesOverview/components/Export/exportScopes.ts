@@ -90,19 +90,6 @@ export const EXPORT_SCOPE_OPTIONS: ExportScopeOption[] = [
   },
 ];
 
-export function buildExportScopeOptions(options?: {
-  includeProcessesExport?: boolean;
-}): ExportScopeOption[] {
-  const includeProcessesExport = options?.includeProcessesExport ?? true;
-  if (includeProcessesExport) {
-    return EXPORT_SCOPE_OPTIONS;
-  }
-
-  return EXPORT_SCOPE_OPTIONS.filter(
-    (option) => option.id !== PROCESSES_EXPORT_SCOPE_ID,
-  );
-}
-
 export const DEFAULT_EXPORT_SCOPES: ExportScopeId[] = ["overview"];
 
 export function scopesToExportParam(
